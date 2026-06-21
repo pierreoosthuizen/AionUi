@@ -23,6 +23,7 @@ const CommandsList: React.FC<CommandsListProps> = ({ t, workspace }) => (
     globalLabel={t('conversation.workspace.skills.globalSection', { defaultValue: 'Global' })}
     searchPlaceholder={t('conversation.workspace.commands.search', { defaultValue: 'Search commands…' })}
     emptyText={t('conversation.workspace.commands.empty', { defaultValue: 'No commands loaded' })}
+    storageKey='agora-commands-collapsed'
   />
 );
 

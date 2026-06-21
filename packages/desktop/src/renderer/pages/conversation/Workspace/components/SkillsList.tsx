@@ -23,6 +23,7 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => (
     globalLabel={t('conversation.workspace.skills.globalSection', { defaultValue: 'Global' })}
     searchPlaceholder={t('conversation.workspace.skills.search', { defaultValue: 'Search skills…' })}
     emptyText={t('conversation.workspace.skills.empty', { defaultValue: 'No skills loaded' })}
+    storageKey='agora-skills-collapsed'
   />
 );
 

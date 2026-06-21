@@ -17,7 +17,18 @@ type GroupedItemListProps = {
   globalLabel: string;
   searchPlaceholder: string;
   emptyText: string;
+  /** localStorage key under which the collapsed-folder set is persisted. */
+  storageKey: string;
 };
+
+function loadCollapsed(key: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? new Set<string>(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
 
 const ItemRow: React.FC<{ item: SkillItem; icon: React.ReactNode }> = ({ item, icon }) => (
   <div
@@ -42,10 +53,11 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
   globalLabel,
   searchPlaceholder,
   emptyText,
+  storageKey,
 }) => {
   const { global, profiles } = groups;
   const [query, setQuery] = useState('');
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed(storageKey));
 
   const q = query.trim().toLowerCase();
   const match = useMemo(
@@ -70,6 +82,11 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
     setCollapsed((prev) => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify([...next]));
+      } catch {
+        /* ignore quota/availability errors — collapse state is non-critical */
+      }
       return next;
     });
 
