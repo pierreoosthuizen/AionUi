@@ -14,7 +14,7 @@ import { CHAT_INPUT_ACCENTS, type ChatInputAccent } from '@/common/config/chatIn
  * derives a session's identity from its cwd — gives AionUi conversations the
  * same visible name+colour parity. Non-peer workspaces resolve to null.
  */
-export type PeerIdentity = { alias: string; colour: ChatInputAccent };
+export type PeerIdentity = { alias: string; colour: ChatInputAccent; group?: string };
 
 // ponytail: fork-local — Pierre's peers registry, single source of truth for
 // peer name+colour. Home hardcoded (personal single-user fork). Switch to a
@@ -33,16 +33,24 @@ function loadPeers(): Promise<Map<string, PeerIdentity>> {
     .then((raw) => {
       const map = new Map<string, PeerIdentity>();
       if (!raw) return map;
-      const data = JSON.parse(raw) as { peers?: Array<{ workspace?: string; alias?: string; colour?: string }> };
+      const data = JSON.parse(raw) as {
+        peers?: Array<{ workspace?: string; alias?: string; colour?: string; group?: string }>;
+      };
       for (const peer of data.peers ?? []) {
         if (!peer.workspace || !peer.alias) continue;
         const colour = (peer.colour && VALID_COLOURS.has(peer.colour) ? peer.colour : 'default') as ChatInputAccent;
-        map.set(peer.workspace, { alias: peer.alias, colour });
+        map.set(peer.workspace, { alias: peer.alias, colour, group: peer.group?.trim() || undefined });
       }
       return map;
     })
     .catch(() => new Map<string, PeerIdentity>());
   return cache;
+}
+
+/** Resolve a workspace's peer group name (from peers.json), or undefined. */
+export async function resolvePeerGroup(workspace: string): Promise<string | undefined> {
+  const map = await loadPeers();
+  return map.get(workspace)?.group;
 }
 
 export function usePeerIdentity(workspace?: string): PeerIdentity | null {

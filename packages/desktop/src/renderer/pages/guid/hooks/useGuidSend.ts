@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
+import { autoAssignPeerGroup } from '@/renderer/pages/conversation/GroupedHistory/hooks/useGroups';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
@@ -233,6 +234,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           ]);
         }
 
+        // Peer-driven auto-grouping: move the new chat into its peer's group if
+        // that group already exists (no-op otherwise → stays Ungrouped).
+        await autoAssignPeerGroup(conversation.id, finalWorkspace);
+
         emitter.emit('chat.history.refresh');
 
         const initialMessage = {
@@ -319,6 +324,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             swrMutate('assistants.list'),
           ]);
         }
+
+        // Peer-driven auto-grouping: move the new chat into its peer's group if
+        // that group already exists (no-op otherwise → stays Ungrouped).
+        await autoAssignPeerGroup(conversation.id, finalWorkspace);
 
         emitter.emit('chat.history.refresh');
 

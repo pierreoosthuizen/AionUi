@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { resolvePeerGroup } from '@/renderer/hooks/agent/usePeerIdentity';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useSyncExternalStore } from 'react';
@@ -44,6 +45,27 @@ function writeGroups(next: ChatGroup[]): void {
     // ignore storage errors
   }
   listeners.forEach((l) => l());
+}
+
+/**
+ * On new-chat creation: if the chat's workspace maps to a peer that carries a
+ * `group` (peers.json), and a group with that name ALREADY exists, move the chat
+ * into it. Never auto-creates a group — an unmatched chat stays Ungrouped.
+ * Name match is case-insensitive/trim-tolerant.
+ */
+export async function autoAssignPeerGroup(conversationId: string, workspace?: string): Promise<void> {
+  if (!workspace) return;
+  const groupName = await resolvePeerGroup(workspace);
+  if (!groupName) return;
+  const wanted = groupName.trim().toLowerCase();
+  const match = readGroups().find((g) => g.name.trim().toLowerCase() === wanted);
+  if (!match) return;
+  await ipcBridge.conversation.update.invoke({
+    id: conversationId,
+    updates: { extra: { groupId: match.id } as unknown as Partial<TChatConversation['extra']> },
+    merge_extra: true,
+  });
+  await refreshConversationCache(conversationId);
 }
 
 function subscribe(listener: () => void): () => void {

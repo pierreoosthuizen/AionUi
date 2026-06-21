@@ -9,7 +9,7 @@ import DirectorySelectionModal from '@/renderer/components/settings/DirectorySel
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -24,7 +24,7 @@ import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
-import { useGroups } from './hooks/useGroups';
+import { useGroups, type ChatGroup } from './hooks/useGroups';
 import { getConversationGroupId, isConversationPinned, isCronJobConversation } from './utils/groupingHelpers';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
@@ -104,7 +104,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   }, [id, setActiveConversation]);
 
   const { conversations, isConversationGenerating, hasCompletionUnread, pinnedConversations } = useConversations();
-  const { groups, createGroup, assignToGroup } = useGroups();
+  const { groups, createGroup, assignToGroup, renameGroup, deleteGroup } = useGroups();
 
   const {
     selectedConversationIds,
@@ -193,6 +193,27 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const handleNewGroupCancel = useCallback(() => {
     setNewGroupConversation(null);
     setNewGroupName('');
+  }, []);
+
+  // Group rename/delete (right-click on a group label).
+  const [renameGroupTarget, setRenameGroupTarget] = useState<ChatGroup | null>(null);
+  const [renameGroupValue, setRenameGroupValue] = useState('');
+  const openRenameGroup = useCallback((group: ChatGroup) => {
+    setRenameGroupTarget(group);
+    setRenameGroupValue(group.name);
+  }, []);
+  const handleRenameGroupConfirm = useCallback(() => {
+    const name = renameGroupValue.trim();
+    if (!name || !renameGroupTarget) return;
+    // Membership rides on the stable group id, so renaming the label keeps every
+    // chat in the group automatically — no per-conversation rewrite needed.
+    renameGroup(renameGroupTarget.id, name);
+    setRenameGroupTarget(null);
+    setRenameGroupValue('');
+  }, [renameGroupValue, renameGroupTarget, renameGroup]);
+  const handleRenameGroupCancel = useCallback(() => {
+    setRenameGroupTarget(null);
+    setRenameGroupValue('');
   }, []);
 
   const getConversationRowProps = useCallback(
@@ -466,6 +487,29 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         />
       </Modal>
 
+      {/* Rename-group prompt (right-click a group label → Rename). */}
+      <Modal
+        title={t('conversation.history.renameGroupTitle')}
+        visible={renameGroupTarget !== null}
+        onOk={handleRenameGroupConfirm}
+        onCancel={handleRenameGroupCancel}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ disabled: !renameGroupValue.trim() }}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
+        <Input
+          autoFocus
+          value={renameGroupValue}
+          onChange={setRenameGroupValue}
+          onPressEnter={handleRenameGroupConfirm}
+          placeholder={t('conversation.history.newGroupPlaceholder')}
+          allowClear
+        />
+      </Modal>
+
       <div>
         {/* L1: Pinned section */}
         <DndContext
@@ -507,9 +551,38 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {groups.map((group) => {
           const sectionKey = `group:${group.id}`;
           const list = groupSections.byGroup.get(group.id) ?? [];
+          const isEmptyGroup = list.length === 0;
           return (
             <div key={group.id} className='min-w-0'>
-              {!collapsed && <SectionLabel sectionKey={sectionKey} label={group.name} />}
+              {!collapsed && (
+                <Dropdown
+                  trigger='contextMenu'
+                  position='bl'
+                  droplist={
+                    <Menu
+                      onClickMenuItem={(key) => {
+                        if (key === 'rename') openRenameGroup(group);
+                        else if (key === 'delete' && isEmptyGroup) deleteGroup(group.id);
+                      }}
+                    >
+                      <Menu.Item key='rename'>{t('conversation.history.renameGroup')}</Menu.Item>
+                      <Menu.Item key='delete' disabled={!isEmptyGroup}>
+                        {isEmptyGroup ? (
+                          t('conversation.history.deleteGroup')
+                        ) : (
+                          <Tooltip mini position='right' content={t('conversation.history.deleteGroupNotEmpty')}>
+                            <span>{t('conversation.history.deleteGroup')}</span>
+                          </Tooltip>
+                        )}
+                      </Menu.Item>
+                    </Menu>
+                  }
+                >
+                  <div>
+                    <SectionLabel sectionKey={sectionKey} label={group.name} />
+                  </div>
+                </Dropdown>
+              )}
               {!collapsedSections.has(sectionKey) && (
                 <div className='min-w-0'>
                   {list.length > 0
