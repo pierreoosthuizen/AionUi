@@ -1,4 +1,6 @@
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
+import { usePeerIdentity } from '@/renderer/hooks/agent/usePeerIdentity';
+import { CHAT_INPUT_ACCENT_MAP } from '@/common/config/chatInputAccent';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -61,6 +63,10 @@ const ChatLayout: React.FC<{
   headerLeading?: React.ReactNode;
 }> = (props) => {
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
+  // Header identity: when the workspace maps to a claude-peers entry, show the
+  // peer alias (in its colour) instead of the auto-generated conversation title.
+  const headerPeerIdentity = usePeerIdentity(workspacePath);
+  const headerPeerColour = headerPeerIdentity ? CHAT_INPUT_ACCENT_MAP[headerPeerIdentity.colour].swatch : undefined;
   const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
@@ -198,18 +204,30 @@ const ChatLayout: React.FC<{
           canRenameTitle={canRenameTitle}
           submitTitleRename={submitTitleRename}
           titleAreaMaxWidth={titleAreaMaxWidth}
-          title={props.title}
+          title={
+            headerPeerIdentity ? (
+              <span className='font-600' style={{ color: headerPeerColour }}>
+                {headerPeerIdentity.alias}
+              </span>
+            ) : (
+              props.title
+            )
+          }
           conversation_id={conversation_id}
           leading={
-            props.headerLeading ??
-            ((backend || presetAssistant) && (
-              <AgentLogoIcon
-                backend={backend}
-                agent_name={display_name}
-                agentLogo={presetAssistant?.logo}
-                agentLogoIsEmoji={presetAssistant?.isEmoji}
-              />
-            ))
+            headerPeerIdentity ? (
+              <span className='inline-block w-10px h-10px rd-999px flex-shrink-0' style={{ background: headerPeerColour }} />
+            ) : (
+              props.headerLeading ??
+              ((backend || presetAssistant) && (
+                <AgentLogoIcon
+                  backend={backend}
+                  agent_name={display_name}
+                  agentLogo={presetAssistant?.logo}
+                  agentLogoIsEmoji={presetAssistant?.isEmoji}
+                />
+              ))
+            )
           }
         />
       </FlexFullContainer>

@@ -284,6 +284,9 @@ export const useGuidAgentSelection = ({
     // instead of mistaking it for a logo URL.
     const normalisedDetected: AvailableAgent[] = availableAgentsData
       .filter(isSupportedNewConversationAgent)
+      // ponytail: fork-local — surface only Claude Code in the new-chat agent
+      // bar. Drop Aion CLI / OpenClaw and any other detected engine.
+      .filter((a) => (a as AgentMetadata).backend === 'claude')
       .map((a) => {
         const asAgent = a as AgentMetadata;
         const isCustomRow = asAgent.agent_source === 'custom';
@@ -533,7 +536,9 @@ export const useGuidAgentSelection = ({
     selectedAgentInfo,
     is_presetAgent,
     availableAgents,
-    assistants,
+    // ponytail: fork-local — hide all preset assistants from the new-chat
+    // grid (empty list → AssistantSelectionArea renders null).
+    assistants: [],
     customAgents,
     selectedMode,
     setSelectedMode,

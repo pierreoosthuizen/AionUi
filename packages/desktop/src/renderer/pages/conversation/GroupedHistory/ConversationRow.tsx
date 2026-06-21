@@ -7,6 +7,8 @@
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { usePeerIdentity } from '@/renderer/hooks/agent/usePeerIdentity';
+import { CHAT_INPUT_ACCENT_MAP } from '@/common/config/chatInputAccent';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -48,6 +50,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   } = props;
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
+  const peerIdentity = usePeerIdentity((conversation.extra as { workspace?: string } | undefined)?.workspace);
   const isPinned = isConversationPinned(conversation);
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
@@ -188,8 +191,19 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             popupHoverStay={false}
             position='top'
           >
-            <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
-              <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
+            <div className='chat-history__item-name flex items-center gap-6px w-full text-14px font-[500] lh-24px min-w-0 text-t-primary'>
+              {peerIdentity ? (
+                // Peer conversation: the peer alias IS the name (coloured dot +
+                // alias), replacing the auto-generated conversation title.
+                <>
+                  <span className='w-8px h-8px rd-999px flex-shrink-0' style={{ background: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }} />
+                  <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0' style={{ color: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }}>
+                    {peerIdentity.alias}
+                  </span>
+                </>
+              ) : (
+                <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>{conversation.name}</span>
+              )}
             </div>
           </Tooltip>
         </FlexFullContainer>

@@ -12,6 +12,8 @@ import CssThemeSettings from '@renderer/pages/settings/AppearanceSettings/CssThe
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
+import { useConfig } from '@renderer/hooks/config/useConfig';
+import { CHAT_INPUT_ACCENTS, CHAT_INPUT_ACCENT_MAP, DEFAULT_CHAT_INPUT_ACCENT, type ChatInputAccent } from '@/common/config/chatInputAccent';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /** Map each configurable font-size region to its row label i18n key. */
@@ -52,6 +54,8 @@ const AppearanceModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const { fontSizes, setFontSize } = useThemeContext();
+  const [accent, setAccent] = useConfig('ui.chatInputAccent');
+  const selectedAccent: ChatInputAccent = (accent as ChatInputAccent) ?? DEFAULT_CHAT_INPUT_ACCENT;
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -80,6 +84,31 @@ const AppearanceModalContent: React.FC = () => {
                   />
                 </PreferenceRow>
               ))}
+            </div>
+          </div>
+
+          {/* 聊天输入框颜色 / Chat input accent */}
+          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.chatInputAccent', { defaultValue: 'Chat input color' })}>
+                <div className='flex flex-wrap gap-10px md:justify-end'>
+                  {CHAT_INPUT_ACCENTS.map((name) => (
+                    <div
+                      key={name}
+                      role='button'
+                      aria-label={name}
+                      title={name}
+                      onClick={() => void setAccent(name)}
+                      className='w-22px h-22px rd-999px cursor-pointer transition-transform hover:scale-110'
+                      style={{
+                        background: CHAT_INPUT_ACCENT_MAP[name].swatch,
+                        outline: selectedAccent === name ? '2px solid var(--color-text-2)' : '1px solid var(--color-border-2)',
+                        outlineOffset: 2,
+                      }}
+                    />
+                  ))}
+                </div>
+              </PreferenceRow>
             </div>
           </div>
 

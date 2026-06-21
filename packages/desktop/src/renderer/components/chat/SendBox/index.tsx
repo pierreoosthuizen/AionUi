@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
+import { usePeerIdentity } from '@/renderer/hooks/agent/usePeerIdentity';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
@@ -227,7 +228,10 @@ const SendBox: React.FC<{
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
-  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  // Tint the input ring with the conversation's peer colour when its workspace
+  // maps to a claude-peers entry; otherwise the Appearance accent applies.
+  const sendBoxPeerIdentity = usePeerIdentity(conversationContext?.workspace);
+  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing(sendBoxPeerIdentity?.colour);
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);

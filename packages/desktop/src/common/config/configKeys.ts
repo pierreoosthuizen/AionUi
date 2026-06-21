@@ -36,6 +36,7 @@ export type ConfigKeyMap = {
   'ui.fontSize.chat': number | undefined;
   'ui.fontSize.markdown': number | undefined;
   'ui.fontSize.code': number | undefined;
+  'ui.chatInputAccent': string | undefined;
   'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;
