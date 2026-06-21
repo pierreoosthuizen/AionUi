@@ -216,9 +216,12 @@ const ChatLayout: React.FC<{
           conversation_id={conversation_id}
           leading={
             headerPeerIdentity ? (
-              <span className='inline-block w-10px h-10px rd-999px flex-shrink-0' style={{ background: headerPeerColour }} />
+              <span
+                className='inline-block w-10px h-10px rd-999px flex-shrink-0'
+                style={{ background: headerPeerColour }}
+              />
             ) : (
-              props.headerLeading ??
+              (props.headerLeading ??
               ((backend || presetAssistant) && (
                 <AgentLogoIcon
                   backend={backend}
@@ -226,7 +229,7 @@ const ChatLayout: React.FC<{
                   agentLogo={presetAssistant?.logo}
                   agentLogoIsEmoji={presetAssistant?.isEmoji}
                 />
-              ))
+              )))
             )
           }
         />

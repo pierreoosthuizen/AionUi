@@ -13,7 +13,12 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useConfig } from '@renderer/hooks/config/useConfig';
-import { CHAT_INPUT_ACCENTS, CHAT_INPUT_ACCENT_MAP, DEFAULT_CHAT_INPUT_ACCENT, type ChatInputAccent } from '@/common/config/chatInputAccent';
+import {
+  CHAT_INPUT_ACCENTS,
+  CHAT_INPUT_ACCENT_MAP,
+  DEFAULT_CHAT_INPUT_ACCENT,
+  type ChatInputAccent,
+} from '@/common/config/chatInputAccent';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 /** Map each configurable font-size region to its row label i18n key. */
@@ -102,7 +107,8 @@ const AppearanceModalContent: React.FC = () => {
                       className='w-22px h-22px rd-999px cursor-pointer transition-transform hover:scale-110'
                       style={{
                         background: CHAT_INPUT_ACCENT_MAP[name].swatch,
-                        outline: selectedAccent === name ? '2px solid var(--color-text-2)' : '1px solid var(--color-border-2)',
+                        outline:
+                          selectedAccent === name ? '2px solid var(--color-text-2)' : '1px solid var(--color-border-2)',
                         outlineOffset: 2,
                       }}
                     />

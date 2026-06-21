@@ -196,13 +196,21 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                 // Peer conversation: the peer alias IS the name (coloured dot +
                 // alias), replacing the auto-generated conversation title.
                 <>
-                  <span className='w-8px h-8px rd-999px flex-shrink-0' style={{ background: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }} />
-                  <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0' style={{ color: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }}>
+                  <span
+                    className='w-8px h-8px rd-999px flex-shrink-0'
+                    style={{ background: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }}
+                  />
+                  <span
+                    className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'
+                    style={{ color: CHAT_INPUT_ACCENT_MAP[peerIdentity.colour].swatch }}
+                  >
                     {peerIdentity.alias}
                   </span>
                 </>
               ) : (
-                <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>{conversation.name}</span>
+                <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>
+                  {conversation.name}
+                </span>
               )}
             </div>
           </Tooltip>

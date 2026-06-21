@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { fs } from '@/common/adapter/ipcBridge';
-import { type ChatInputAccent } from '@/common/config/chatInputAccent';
+import { CHAT_INPUT_ACCENTS, type ChatInputAccent } from '@/common/config/chatInputAccent';
 
 /**
  * Resolve a conversation's claude-peers identity (name + colour) from the CLI
@@ -21,7 +21,7 @@ export type PeerIdentity = { alias: string; colour: ChatInputAccent };
 // resolved home if this ever ships beyond this machine.
 const PEERS_JSON = '/Users/pierreo/.claude/peers/peers.json';
 
-const VALID_COLOURS = new Set<string>(['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan', 'default']);
+const VALID_COLOURS = new Set<string>(CHAT_INPUT_ACCENTS);
 
 let cache: Promise<Map<string, PeerIdentity>> | null = null;
 

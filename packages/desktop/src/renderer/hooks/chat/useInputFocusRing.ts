@@ -1,6 +1,10 @@
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { useConfig } from '@/renderer/hooks/config/useConfig';
-import { CHAT_INPUT_ACCENT_MAP, DEFAULT_CHAT_INPUT_ACCENT, type ChatInputAccent } from '@/common/config/chatInputAccent';
+import {
+  CHAT_INPUT_ACCENT_MAP,
+  DEFAULT_CHAT_INPUT_ACCENT,
+  type ChatInputAccent,
+} from '@/common/config/chatInputAccent';
 
 export const useInputFocusRing = (accentOverride?: ChatInputAccent) => {
   const { theme } = useThemeContext();

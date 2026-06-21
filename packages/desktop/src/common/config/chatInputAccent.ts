@@ -9,7 +9,17 @@
  * session `/color` palette. Selected in Appearance settings and consumed by
  * `useInputFocusRing`.
  */
-export const CHAT_INPUT_ACCENTS = ['default', 'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'cyan'] as const;
+export const CHAT_INPUT_ACCENTS = [
+  'default',
+  'red',
+  'blue',
+  'green',
+  'yellow',
+  'purple',
+  'orange',
+  'pink',
+  'cyan',
+] as const;
 
 export type ChatInputAccent = (typeof CHAT_INPUT_ACCENTS)[number];
 
