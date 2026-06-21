@@ -46,13 +46,26 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
     [profiles, match]
   );
 
-  const total = globalFiltered.length + profilesFiltered.reduce((n, p) => n + p.skills.length, 0);
-  const hasProfiles = profilesFiltered.length > 0;
+  // Unified node list: Global folder first, then one folder per applied profile.
+  const nodes = useMemo(() => {
+    const list: Array<{ key: string; label: string; skills: string[] }> = [];
+    if (globalFiltered.length > 0) {
+      list.push({
+        key: '__global__',
+        label: t('conversation.workspace.skills.globalSection', { defaultValue: 'Global' }),
+        skills: globalFiltered,
+      });
+    }
+    for (const p of profilesFiltered) list.push({ key: `p:${p.name}`, label: p.name, skills: p.skills });
+    return list;
+  }, [globalFiltered, profilesFiltered, t]);
 
-  const toggle = (name: string) =>
+  const total = nodes.reduce((n, node) => n + node.skills.length, 0);
+
+  const toggle = (key: string) =>
     setCollapsed((prev) => {
       const next = new Set(prev);
-      next.has(name) ? next.delete(name) : next.add(name);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
 
@@ -72,35 +85,24 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
         </div>
       ) : (
         <div className='flex-1 overflow-y-auto px-6px pb-8px'>
-          {/* Global group — labelled only when profiles also exist, else a plain flat list. */}
-          {hasProfiles && globalFiltered.length > 0 && (
-            <div className='px-10px pt-6px pb-2px text-11px font-600 uppercase tracking-wide text-t-tertiary'>
-              {t('conversation.workspace.skills.globalSection', { defaultValue: 'Global' })}
-            </div>
-          )}
-          {globalFiltered.map((name) => (
-            <SkillRow key={`g:${name}`} name={name} indent={hasProfiles} />
-          ))}
-
-          {/* One collapsible node per applied profile. Search expands all matches. */}
-          {profilesFiltered.map((profile) => {
-            const isCollapsed = !q && collapsed.has(profile.name);
+          {/* Every group is a collapsible folder. Search expands all matches. */}
+          {nodes.map((node) => {
+            const isCollapsed = !q && collapsed.has(node.key);
             return (
-              <div key={`p:${profile.name}`}>
+              <div key={node.key}>
                 <div
                   className='flex items-center gap-6px px-8px py-7px mt-2px rd-6px cursor-pointer hover:bg-fill-2 text-13px font-600 text-t-primary'
-                  onClick={() => toggle(profile.name)}
+                  onClick={() => toggle(node.key)}
                 >
                   {isCollapsed ? (
                     <Right theme='outline' size={14} strokeWidth={3} className='shrink-0 text-t-tertiary' />
                   ) : (
                     <Down theme='outline' size={14} strokeWidth={3} className='shrink-0 text-t-tertiary' />
                   )}
-                  <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{profile.name}</span>
-                  <span className='ml-auto text-11px font-400 text-t-tertiary'>{profile.skills.length}</span>
+                  <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.label}</span>
+                  <span className='ml-auto text-11px font-400 text-t-tertiary'>{node.skills.length}</span>
                 </div>
-                {!isCollapsed &&
-                  profile.skills.map((name) => <SkillRow key={`${profile.name}:${name}`} name={name} indent />)}
+                {!isCollapsed && node.skills.map((name) => <SkillRow key={`${node.key}:${name}`} name={name} indent />)}
               </div>
             );
           })}
