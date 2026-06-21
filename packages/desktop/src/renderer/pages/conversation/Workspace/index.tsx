@@ -15,6 +15,7 @@ import { Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
+import SkillsList from './components/SkillsList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
@@ -483,6 +484,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 }}
               ></Tree>
             )}
+          </FlexFullContainer>
+        )}
+
+        {/* Skills tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'skills' && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <SkillsList t={t} workspace={workspace} />
           </FlexFullContainer>
         )}
 

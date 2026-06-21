@@ -5,19 +5,16 @@
  */
 
 import type { IConversationMcpStatus, IConversationMcpStatusKind } from '@/common/config/storage';
-import { ipcBridge } from '@/common';
 import { Button, Message, Trigger } from '@arco-design/web-react';
-import { FolderOpen, Lightning, Paperclip, Plus, Right, Shield } from '@icon-park/react';
+import { FolderOpen, Paperclip, Plus, Right, Shield } from '@icon-park/react';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { FileService } from '@/renderer/services/FileService';
 import type { FileMetadata } from '@/renderer/services/FileService';
-import { emitter } from '@/renderer/utils/emitter';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
 
 interface FileAttachButtonProps {
   openFileSelector: () => void;
@@ -75,7 +72,6 @@ const buildLoadedMcpStatuses = (
 const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   openFileSelector,
   onLocalFilesAdded,
-  loadedSkills,
   loadedMcpStatuses,
 }) => {
   const conversationContext = useConversationContextSafe();
@@ -84,27 +80,15 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [skillsOpen, setSkillsOpen] = useState(false);
   const [mcpOpen, setMcpOpen] = useState(false);
 
-  const skillNames = loadedSkills ?? conversationContext?.loadedSkills ?? [];
   const mcpStatuses = buildLoadedMcpStatuses(
     loadedMcpStatuses ?? conversationContext?.loadedMcpStatuses,
     conversationContext?.loadedMcpServers
   );
-  const { data: skillIndex } = useSWR(skillNames.length > 0 ? 'skills-index' : null, () =>
-    ipcBridge.fs.listAvailableSkills.invoke()
-  );
-  const descriptionByName = new Map((skillIndex ?? []).map((s) => [s.name, s.description]));
-
-  const handleSkillClick = useCallback((name: string) => {
-    setOpen(false);
-    emitter.emit('sendbox.fill', `/${name} `);
-  }, []);
 
   const handleOpenMcpSettings = useCallback(() => {
     setOpen(false);
-    setSkillsOpen(false);
     setMcpOpen(false);
     void navigate('/settings/capabilities?tab=tools');
   }, [navigate]);
@@ -128,11 +112,10 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   );
 
   const isDesktop = isElectronDesktop();
-  const hasSkills = skillNames.length > 0;
   const hasMcpServers = mcpStatuses.length > 0;
   const plusIcon = <Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />;
 
-  if (isDesktop && !hasSkills && !hasMcpServers) {
+  if (isDesktop && !hasMcpServers) {
     return (
       <Button
         type='secondary'
@@ -153,20 +136,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     minWidth: 220,
     zIndex: 1050,
   };
-
-  const skillsPanel = (
-    <div style={{ ...cardStyle, minWidth: 180 }} onClick={(e) => e.stopPropagation()}>
-      {skillNames.map((name) => (
-        <MenuItem
-          key={name}
-          icon={<Lightning theme='outline' size={15} strokeWidth={2.5} />}
-          label={name}
-          onClick={() => handleSkillClick(name)}
-          className='mx-6px'
-        />
-      ))}
-    </div>
-  );
 
   const mcpPanel = (
     <div
@@ -223,51 +192,28 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
 
   const menu = (
     <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
-      {/* Loaded items stay above file actions so the session snapshot is visible */}
-      {(hasMcpServers || hasSkills) && (
+      {/* Loaded MCP stays above file actions so the session snapshot is visible */}
+      {hasMcpServers && (
         <>
-          {hasMcpServers && (
-            <div className='px-6px'>
-              <Trigger
-                popup={() => mcpPanel}
-                trigger='hover'
-                position='right'
-                popupVisible={mcpOpen}
-                onVisibleChange={setMcpOpen}
-                mouseEnterDelay={100}
-                mouseLeaveDelay={150}
-              >
-                <div>
-                  <MenuItem
-                    icon={<Shield theme='outline' size={15} strokeWidth={2.5} />}
-                    label={`${t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' })} · ${mcpStatuses.length}`}
-                    suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
-                  />
-                </div>
-              </Trigger>
-            </div>
-          )}
-          {hasSkills && (
-            <div className='px-6px'>
-              <Trigger
-                popup={() => skillsPanel}
-                trigger='hover'
-                position='right'
-                popupVisible={skillsOpen}
-                onVisibleChange={setSkillsOpen}
-                mouseEnterDelay={100}
-                mouseLeaveDelay={150}
-              >
-                <div>
-                  <MenuItem
-                    icon={<Lightning theme='outline' size={15} strokeWidth={2.5} />}
-                    label={`${t('conversation.skills.loaded', { defaultValue: 'Loaded Skills' })} · ${skillNames.length}`}
-                    suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
-                  />
-                </div>
-              </Trigger>
-            </div>
-          )}
+          <div className='px-6px'>
+            <Trigger
+              popup={() => mcpPanel}
+              trigger='hover'
+              position='right'
+              popupVisible={mcpOpen}
+              onVisibleChange={setMcpOpen}
+              mouseEnterDelay={100}
+              mouseLeaveDelay={150}
+            >
+              <div>
+                <MenuItem
+                  icon={<Shield theme='outline' size={15} strokeWidth={2.5} />}
+                  label={`${t('conversation.mcp.loaded', { defaultValue: 'Loaded MCP' })} · ${mcpStatuses.length}`}
+                  suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
+                />
+              </div>
+            </Trigger>
+          </div>
           <div style={{ margin: '4px 12px', height: 1, backgroundColor: 'var(--color-border-1, #e5e6eb)' }} />
         </>
       )}
