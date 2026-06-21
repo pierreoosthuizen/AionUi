@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
+import { arrayMove } from '@dnd-kit/sortable';
 import { resolvePeerGroup } from '@/renderer/hooks/agent/usePeerIdentity';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
@@ -96,6 +97,15 @@ export function useGroups() {
     writeGroups(readGroups().filter((g) => g.id !== id));
   }, []);
 
+  /** Reorder groups by drag (active dropped onto over). Persists the new order. */
+  const reorderGroups = useCallback((activeId: string, overId: string): void => {
+    const cur = readGroups();
+    const from = cur.findIndex((g) => g.id === activeId);
+    const to = cur.findIndex((g) => g.id === overId);
+    if (from === -1 || to === -1 || from === to) return;
+    writeGroups(arrayMove(cur, from, to));
+  }, []);
+
   /** Set (or clear, when groupId is null) a conversation's group membership. */
   const assignToGroup = useCallback(async (conversation: TChatConversation, groupId: string | null): Promise<void> => {
     await ipcBridge.conversation.update.invoke({
@@ -109,5 +119,5 @@ export function useGroups() {
     emitter.emit('chat.history.refresh');
   }, []);
 
-  return { groups, createGroup, renameGroup, deleteGroup, assignToGroup };
+  return { groups, createGroup, renameGroup, deleteGroup, reorderGroups, assignToGroup };
 }
