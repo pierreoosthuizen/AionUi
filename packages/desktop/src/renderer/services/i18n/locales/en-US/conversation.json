@@ -298,6 +298,11 @@
     "refresh": "Refresh",
     "showHidden": "Show hidden files",
     "hideHidden": "Hide hidden files",
+    "skills": {
+      "search": "Search skills…",
+      "empty": "No skills loaded",
+      "globalSection": "Global"
+    },
     "temporarySpace": "Temporary Space",
     "dragOverlayTitle": "Drop to import",
     "dragOverlayDesc": "Drag files or folders here to copy them into this project.",
