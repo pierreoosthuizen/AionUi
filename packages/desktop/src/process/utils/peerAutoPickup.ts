@@ -70,7 +70,12 @@ async function brokerPost<T>(path: string, body: unknown): Promise<T | null> {
   }
 }
 
-/** Most-recent peer per cwd (alive — /list-peers already filters dead pids). */
+/**
+ * Most-recent peer per cwd (alive — /list-peers already filters dead pids).
+ * Re-resolved every tick on purpose: each ACP turn respawns the conversation's
+ * claude→server.ts under a NEW peer id (turn-scoped transport), so we address by
+ * the stable cwd and never pin a churning id.
+ */
 async function peersByCwd(): Promise<Map<string, string>> {
   const peers = await brokerPost<BrokerPeer[]>('/list-peers', { scope: 'machine', cwd: '', git_root: null });
   const map = new Map<string, string>();
