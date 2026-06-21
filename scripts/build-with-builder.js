@@ -405,6 +405,15 @@ try {
   const skipViteBuild = shouldSkipViteBuild(skipVite, forceBuild);
 
   if (!skipViteBuild) {
+    // Purge prior bundle output before rebuilding. Rollup emits content-hashed
+    // chunk filenames and does NOT delete orphans from a previous build, so a
+    // deleted/renamed lazy module can leave a stale chunk that the new index.html
+    // never references — but a dynamic import of it 404s at runtime, crashing the
+    // lazy boundary (observed as a blank Settings screen). Empty the dir so only
+    // freshly-emitted chunks survive.
+    tryRemoveDir(path.resolve(__dirname, '../out/renderer'));
+    tryRemoveDir(path.resolve(__dirname, '../out/main'));
+
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
     execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
