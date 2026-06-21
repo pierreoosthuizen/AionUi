@@ -12,7 +12,6 @@ import { useTeamCreatedRedirect } from '@renderer/pages/team/hooks/useTeamCreate
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
-import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
@@ -32,7 +31,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
   const { logout, status } = useAuth();
-  const { theme, setTheme } = useThemeContext();
+  const { activeId, selectTheme } = useThemeContext();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const { jobs: cronJobs } = useAllCronJobs();
   useTeamCreatedRedirect();
@@ -96,10 +95,6 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     if (onSessionClick) {
       onSessionClick();
     }
-  };
-
-  const handleQuickThemeToggle = () => {
-    void setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
   const handleLogout = useCallback(async () => {
@@ -199,17 +194,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 <WorkspaceGroupedHistory
                   {...workspaceHistoryProps}
                   afterPinnedContent={
-                    <>
-                      <TeamSiderSection
-                        collapsed={collapsed}
-                        pathname={pathname}
-                        siderTooltipProps={siderTooltipProps}
-                        onSessionClick={onSessionClick}
-                      />
-                      {!collapsed && (
-                        <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
-                      )}
-                    </>
+                    // ponytail: Teams hidden from the sidebar (capability/routes kept).
+                    // Restore <TeamSiderSection> here to re-enable the UI.
+                    !collapsed ? (
+                      <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
+                    ) : undefined
                   }
                 />
               </Suspense>
@@ -222,10 +211,10 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         isMobile={isMobile}
         isSettings={isSettings}
         collapsed={collapsed}
-        theme={theme}
+        activeThemeId={activeId}
         siderTooltipProps={siderTooltipProps}
         onSettingsClick={handleSettingsClick}
-        onThemeToggle={handleQuickThemeToggle}
+        onSelectTheme={(id) => void selectTheme(id)}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
       />

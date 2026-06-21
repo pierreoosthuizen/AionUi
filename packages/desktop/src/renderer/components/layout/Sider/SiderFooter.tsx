@@ -6,20 +6,22 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Tooltip } from '@arco-design/web-react';
-import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/react';
+import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { ArrowCircleLeft, CloseOne, Computer, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
+import { DARK_THEME_ID, LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
 interface SiderFooterProps {
   isMobile: boolean;
   isSettings: boolean;
   collapsed?: boolean;
-  theme: string;
+  /** Raw selected theme id from config: 'light' | 'dark' | 'system'. */
+  activeThemeId: string | null;
   siderTooltipProps: SiderTooltipProps;
   onSettingsClick: () => void;
-  onThemeToggle: () => void;
+  onSelectTheme: (id: string) => void;
   showLogout?: boolean;
   onLogoutClick?: () => void;
 }
@@ -28,10 +30,10 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   isMobile,
   isSettings,
   collapsed = false,
-  theme,
+  activeThemeId,
   siderTooltipProps,
   onSettingsClick,
-  onThemeToggle,
+  onSelectTheme,
   showLogout = false,
   onLogoutClick,
 }) => {
@@ -55,7 +57,20 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     />
   );
   const showThemeToggle = isSettings && !collapsed;
-  const themeTooltip = theme === 'dark' ? t('settings.lightMode') : t('settings.darkMode');
+  const themeOptions = [
+    {
+      id: LIGHT_THEME_ID,
+      label: t('settings.lightMode'),
+      icon: <SunOne theme='outline' size='16' fill='currentColor' />,
+    },
+    { id: DARK_THEME_ID, label: t('settings.darkMode'), icon: <Moon theme='outline' size='16' fill='currentColor' /> },
+    {
+      id: SYSTEM_THEME_ID,
+      label: t('settings.cssTheme.followSystem', { defaultValue: 'Follow System' }),
+      icon: <Computer theme='outline' size='16' fill='currentColor' />,
+    },
+  ];
+  const currentTheme = themeOptions.find((o) => o.id === activeThemeId) ?? themeOptions[0];
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
@@ -104,26 +119,35 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             </div>
           </Tooltip>
         )}
-        {/* Theme toggle — lightweight icon button, only while inside Settings page (not in collapsed mode) */}
+        {/* Theme selector — light / dark / follow-system, only inside Settings page (not collapsed) */}
         {showThemeToggle && (
-          <Tooltip {...siderTooltipProps} content={themeTooltip} position='right'>
+          <Dropdown
+            trigger='click'
+            position='tr'
+            droplist={
+              <Menu selectedKeys={[currentTheme.id]} onClickMenuItem={(key) => onSelectTheme(key)}>
+                {themeOptions.map((o) => (
+                  <Menu.Item key={o.id}>
+                    <span className='flex items-center gap-8px'>
+                      {o.icon}
+                      {o.label}
+                    </span>
+                  </Menu.Item>
+                ))}
+              </Menu>
+            }
+          >
             <div
-              onClick={onThemeToggle}
               className={classNames(
                 'h-32px w-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
                 isMobile && 'sider-footer-btn-mobile'
               )}
-              aria-label={themeTooltip}
+              aria-label={currentTheme.label}
+              title={currentTheme.label}
             >
-              <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-                {theme === 'dark' ? (
-                  <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                ) : (
-                  <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                )}
-              </span>
+              <span className='w-28px h-28px flex items-center justify-center shrink-0'>{currentTheme.icon}</span>
             </div>
-          </Tooltip>
+          </Dropdown>
         )}
       </div>
     </div>
