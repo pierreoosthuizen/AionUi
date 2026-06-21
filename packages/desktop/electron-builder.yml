@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: Agora
+executableName: Agora
+copyright: Copyright © 2026 Plouton Consulting (Pty) Ltd.
 
 protocols:
-  - name: AionUi Protocol
+  - name: Agora Protocol
     schemes:
       - aionui
 

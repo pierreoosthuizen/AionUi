@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2026 Plouton Consulting (Pty) Ltd.
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -384,11 +384,11 @@ const Layout: React.FC<{
                         }
                       }}
                     >
-                      AionUi
+                      Agora
                     </div>
                   </Tooltip>
                 ) : (
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>Agora</div>
                 )}
                 {isMobile && !collapsed && (
                   <button

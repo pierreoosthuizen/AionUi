@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2026 Plouton Consulting (Pty) Ltd.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Main-window bounds persistence: restore the last-known size and position
