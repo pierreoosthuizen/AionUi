@@ -73,6 +73,8 @@
     "newGroup": "New group…",
     "removeFromGroup": "Remove from group",
     "groupEmpty": "No chats",
+    "showEmptyGroups": "Show empty groups",
+    "hideEmptyGroups": "Hide empty groups",
     "newGroupTitle": "New group",
     "newGroupPlaceholder": "Group name",
     "renameGroup": "Rename group",

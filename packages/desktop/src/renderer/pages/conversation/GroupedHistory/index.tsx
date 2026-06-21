@@ -10,7 +10,7 @@ import { useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, Right } from '@icon-park/react';
+import { FolderOpen, PreviewClose, PreviewOpen, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +60,27 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       else next.add(key);
       try {
         localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify([...next]));
+      } catch {
+        // ignore storage errors
+      }
+      return next;
+    });
+  }, []);
+
+  // Persist "hide empty groups" toggle (eye icon on the Projects heading).
+  const HIDE_EMPTY_GROUPS_KEY = 'grouped-history-hide-empty-groups';
+  const [hideEmptyGroups, setHideEmptyGroups] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(HIDE_EMPTY_GROUPS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
+  const toggleHideEmptyGroups = useCallback(() => {
+    setHideEmptyGroups((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(HIDE_EMPTY_GROUPS_KEY, next ? '1' : '0');
       } catch {
         // ignore storage errors
       }
@@ -218,7 +239,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   }, []);
 
   // Group reordering (drag a group header). Order persists via useGroups → localStorage.
-  const groupIds = useMemo(() => groups.map((g) => g.id), [groups]);
   const handleGroupDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -309,6 +329,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     byGroup.forEach((list) => list.sort(byModified));
     return { byGroup, ungrouped };
   }, [conversations, groups]);
+
+  // When "hide empty groups" is on, drop groups with no chats from the rendered list.
+  const visibleGroups = useMemo(
+    () => (hideEmptyGroups ? groups.filter((g) => (groupSections.byGroup.get(g.id)?.length ?? 0) > 0) : groups),
+    [groups, hideEmptyGroups, groupSections]
+  );
+  const groupIds = useMemo(() => visibleGroups.map((g) => g.id), [visibleGroups]);
+  const hasEmptyGroups = useMemo(
+    () => groups.some((g) => (groupSections.byGroup.get(g.id)?.length ?? 0) === 0),
+    [groups, groupSections]
+  );
 
   if (conversations.length === 0 && pinnedConversations.length === 0) {
     return (
@@ -559,11 +590,38 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {/* Slot 由父级（Sider）填入：例如 Team / CronJob sections，位于「置顶」之后、「项目」之前 */}
         {afterPinnedContent}
 
+        {/* L1: Projects heading — groups live under here. The eye toggle hides/shows
+            empty groups; the chevron collapses the whole projects block. */}
+        {groups.length > 0 && !collapsed && (
+          <SectionLabel
+            sectionKey='projects'
+            label={t('conversation.history.projectsSection')}
+            trailing={
+              hasEmptyGroups ? (
+                <Tooltip
+                  mini
+                  position='left'
+                  content={hideEmptyGroups ? t('conversation.history.showEmptyGroups') : t('conversation.history.hideEmptyGroups')}
+                >
+                  <span className='flex items-center justify-center cursor-pointer text-t-tertiary hover:text-t-primary transition-colors'>
+                    {hideEmptyGroups ? (
+                      <PreviewClose theme='outline' size={14} onClick={toggleHideEmptyGroups} />
+                    ) : (
+                      <PreviewOpen theme='outline' size={14} onClick={toggleHideEmptyGroups} />
+                    )}
+                  </span>
+                </Tooltip>
+              ) : undefined
+            }
+          />
+        )}
+
         {/* L1: Group sections — user-defined groups (Claude-Desktop style).
             Drag a group header to reorder; order persists via useGroups. */}
+        {!collapsedSections.has('projects') && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
           <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
-            {groups.map((group) => {
+            {visibleGroups.map((group) => {
               const sectionKey = `group:${group.id}`;
               const list = groupSections.byGroup.get(group.id) ?? [];
               const isEmptyGroup = list.length === 0;
@@ -622,6 +680,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             })}
           </SortableContext>
         </DndContext>
+        )}
 
         {/* L1: Ungrouped section — chats not assigned to any group */}
         {groupSections.ungrouped.length > 0 && (
