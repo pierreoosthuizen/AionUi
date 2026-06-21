@@ -19,12 +19,14 @@ import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits
 export type ContextUsage = { used: number; limit: number };
 
 export function useContextUsage(conversation_id?: string): ContextUsage | null {
-  const [used, setUsed] = useState<number | null>(null);
+  // ponytail: used starts at 0 (not null) so the footer is always visible —
+  // it just reads 0/limit until the first acp_context_usage event lands.
+  const [used, setUsed] = useState<number>(0);
   const [limit, setLimit] = useState<number>(DEFAULT_CONTEXT_LIMIT);
 
   useEffect(() => {
     if (!conversation_id) {
-      setUsed(null);
+      setUsed(0);
       return;
     }
     let alive = true;
@@ -50,5 +52,5 @@ export function useContextUsage(conversation_id?: string): ContextUsage | null {
     };
   }, [conversation_id]);
 
-  return used === null ? null : { used, limit };
+  return conversation_id ? { used, limit } : null;
 }
