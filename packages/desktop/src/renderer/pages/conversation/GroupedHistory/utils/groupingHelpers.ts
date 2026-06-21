@@ -22,6 +22,12 @@ export const isCronJobConversation = (conversation: TChatConversation): boolean 
   return Boolean(extra?.cron_job_id);
 };
 
+/** User-defined group id (Claude-Desktop-style groups), or undefined when ungrouped. */
+export const getConversationGroupId = (conversation: TChatConversation): string | undefined => {
+  const extra = conversation.extra as { groupId?: string } | undefined;
+  return extra?.groupId || undefined;
+};
+
 export const getConversationPinnedAt = (conversation: TChatConversation): number => {
   const extra = conversation.extra as { pinned_at?: number } | undefined;
   if (typeof extra?.pinned_at === 'number') {

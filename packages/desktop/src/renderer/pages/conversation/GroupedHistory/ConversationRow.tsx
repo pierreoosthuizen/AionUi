@@ -13,14 +13,24 @@ import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
+import {
+  Check,
+  DeleteOne,
+  EditOne,
+  Export,
+  FolderClose,
+  FolderPlus,
+  MessageOne,
+  MoreOne,
+  Pushpin,
+} from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
 import { getBackendKeyFromConversation } from './utils/exportHelpers';
-import { isConversationPinned } from './utils/groupingHelpers';
+import { getConversationGroupId, isConversationPinned } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -47,11 +57,15 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onExport,
     onTogglePin,
     getJobStatus,
+    groups,
+    onMoveToGroup,
+    onNewGroup,
   } = props;
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const peerIdentity = usePeerIdentity((conversation.extra as { workspace?: string } | undefined)?.workspace);
   const isPinned = isConversationPinned(conversation);
+  const currentGroupId = getConversationGroupId(conversation);
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
@@ -246,6 +260,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onExport?.(conversation);
                       return;
                     }
+                    if (key.startsWith('mvgroup:')) {
+                      const target = key.slice('mvgroup:'.length);
+                      if (target === '__new__') onNewGroup?.(conversation);
+                      else if (target === '__none__') onMoveToGroup?.(conversation, null);
+                      else onMoveToGroup?.(conversation, target);
+                      return;
+                    }
                     if (key === 'delete') {
                       onDelete(conversation.id);
                     }
@@ -270,6 +291,37 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                         <span>{t('conversation.history.export')}</span>
                       </div>
                     </Menu.Item>
+                  )}
+                  {onMoveToGroup && onNewGroup && (
+                    <Menu.SubMenu
+                      key='movegroup'
+                      title={
+                        <div className='flex items-center gap-8px'>
+                          <FolderClose theme='outline' size='14' />
+                          <span>{t('conversation.history.moveToGroup')}</span>
+                        </div>
+                      }
+                    >
+                      {(groups ?? []).map((g) => (
+                        <Menu.Item key={`mvgroup:${g.id}`}>
+                          <div className='flex items-center gap-8px'>
+                            <span className='flex-1 overflow-hidden text-ellipsis whitespace-nowrap'>{g.name}</span>
+                            {currentGroupId === g.id && <Check theme='outline' size='14' />}
+                          </div>
+                        </Menu.Item>
+                      ))}
+                      {currentGroupId && (
+                        <Menu.Item key='mvgroup:__none__'>
+                          <span>{t('conversation.history.removeFromGroup')}</span>
+                        </Menu.Item>
+                      )}
+                      <Menu.Item key='mvgroup:__new__'>
+                        <div className='flex items-center gap-8px'>
+                          <FolderPlus theme='outline' size='14' />
+                          <span>{t('conversation.history.newGroup')}</span>
+                        </div>
+                      </Menu.Item>
+                    </Menu.SubMenu>
                   )}
                   <Menu.Item key='delete'>
                     <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>

@@ -6,6 +6,7 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { ReactNode } from 'react';
+import type { ChatGroup } from './hooks/useGroups';
 
 export type WorkspaceGroup = {
   workspace: string;
@@ -60,6 +61,12 @@ export type ConversationRowProps = {
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
+  /** Available chat groups for the "Move to group" submenu. Omit to hide the submenu. */
+  groups?: ChatGroup[];
+  /** Move a conversation into a group (or out of all groups when groupId is null). Omit to hide the submenu. */
+  onMoveToGroup?: (conversation: TChatConversation, groupId: string | null) => void;
+  /** Prompt for a new group name, then move the conversation into it. Omit to hide the submenu. */
+  onNewGroup?: (conversation: TChatConversation) => void;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
 };
