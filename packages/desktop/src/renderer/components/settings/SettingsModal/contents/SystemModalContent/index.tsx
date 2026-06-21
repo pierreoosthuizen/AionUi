@@ -9,7 +9,6 @@ import type { IGpuStatus, IStartOnBootStatus } from '@/common/adapter/ipcBridge'
 import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
-import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
@@ -253,7 +252,6 @@ const SystemModalContent: React.FC = () => {
   }, [systemInfo, form]);
 
   const preferenceItems = [
-    { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
     {
       key: 'startOnBoot',
       label: t('settings.startOnBoot'),
