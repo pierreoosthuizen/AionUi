@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { SkillItem } from '@/renderer/hooks/agent/useLoadedSkills';
 import { useLoadedSkills } from '@/renderer/hooks/agent/useLoadedSkills';
 import { emitter } from '@/renderer/utils/emitter';
 import { Empty } from '@arco-design/web-react';
@@ -16,14 +17,14 @@ type SkillsListProps = {
   workspace?: string;
 };
 
-const SkillRow: React.FC<{ name: string; indent?: boolean }> = ({ name, indent }) => (
+const SkillRow: React.FC<{ skill: SkillItem; indent?: boolean }> = ({ skill, indent }) => (
   <div
     className={`flex items-center gap-8px ${indent ? 'pl-24px pr-10px' : 'px-10px'} py-7px rd-6px cursor-pointer hover:bg-fill-2 text-13px text-t-primary`}
-    title={`/${name}`}
-    onClick={() => emitter.emit('sendbox.fill', `/${name} `)}
+    title={skill.description ? `/${skill.name} — ${skill.description}` : `/${skill.name}`}
+    onClick={() => emitter.emit('sendbox.fill', `/${skill.name} `)}
   >
     <Lightning theme='outline' size={14} strokeWidth={2.5} className='shrink-0 text-t-secondary' />
-    <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{name}</span>
+    <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{skill.name}</span>
   </div>
 );
 
@@ -38,7 +39,10 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const q = query.trim().toLowerCase();
-  const match = useMemo(() => (s: string) => !q || s.toLowerCase().includes(q), [q]);
+  const match = useMemo(
+    () => (s: SkillItem) => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
+    [q]
+  );
 
   const globalFiltered = useMemo(() => global.filter(match), [global, match]);
   const profilesFiltered = useMemo(
@@ -48,7 +52,7 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
 
   // Unified node list: Global folder first, then one folder per applied profile.
   const nodes = useMemo(() => {
-    const list: Array<{ key: string; label: string; skills: string[] }> = [];
+    const list: Array<{ key: string; label: string; skills: SkillItem[] }> = [];
     if (globalFiltered.length > 0) {
       list.push({
         key: '__global__',
@@ -102,7 +106,8 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
                   <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.label}</span>
                   <span className='ml-auto text-11px font-400 text-t-tertiary'>{node.skills.length}</span>
                 </div>
-                {!isCollapsed && node.skills.map((name) => <SkillRow key={`${node.key}:${name}`} name={name} indent />)}
+                {!isCollapsed &&
+                  node.skills.map((skill) => <SkillRow key={`${node.key}:${skill.name}`} skill={skill} indent />)}
               </div>
             );
           })}

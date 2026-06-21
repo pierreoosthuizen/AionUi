@@ -24,24 +24,30 @@ const CLAUDE_DIR = '/Users/pierreo/.claude';
 const USER_SKILLS_DIR = `${CLAUDE_DIR}/skills`;
 const profileSkillsDir = (profile: string): string => `${CLAUDE_DIR}/profiles/skills/${profile}`;
 
+export type SkillItem = { name: string; description: string };
+
 export type SkillGroups = {
   /** User-global + workspace-local skills (always active). */
-  global: string[];
+  global: SkillItem[];
   /** One entry per applied profile, in name order. */
-  profiles: Array<{ name: string; skills: string[] }>;
+  profiles: Array<{ name: string; skills: SkillItem[] }>;
 };
 
 // The backend `/api/skills/scan` envelope is `{ skills: [...] }`; the bridge's
 // declared return type is stale (says bare array), so read `.skills` defensively.
-type ScanResult = { skills?: Array<{ name?: string }> };
+type ScanResult = { skills?: Array<{ name?: string; description?: string }> };
 
-function scanNames(dir: string): Promise<string[]> {
+const byName = (a: SkillItem, b: SkillItem): number => a.name.localeCompare(b.name);
+
+function scanSkills(dir: string): Promise<SkillItem[]> {
   return fs.scanForSkills
     .invoke({ folder_path: dir })
-    .then((res): string[] =>
-      ((res as unknown as ScanResult)?.skills ?? []).map((s) => s.name).filter((n): n is string => !!n)
+    .then((res): SkillItem[] =>
+      ((res as unknown as ScanResult)?.skills ?? [])
+        .filter((s): s is { name: string; description?: string } => !!s.name)
+        .map((s) => ({ name: s.name, description: s.description ?? '' }))
     )
-    .catch((): string[] => []);
+    .catch((): SkillItem[] => []);
 }
 
 async function readAppliedProfiles(workspace: string): Promise<string[]> {
@@ -56,13 +62,13 @@ async function readAppliedProfiles(workspace: string): Promise<string[]> {
 }
 
 // Static per session — scan each dir once and reuse.
-let userScan: Promise<string[]> | null = null;
-const profileScans = new Map<string, Promise<string[]>>();
+let userScan: Promise<SkillItem[]> | null = null;
+const profileScans = new Map<string, Promise<SkillItem[]>>();
 
-function scanProfile(profile: string): Promise<string[]> {
+function scanProfile(profile: string): Promise<SkillItem[]> {
   let scan = profileScans.get(profile);
   if (!scan) {
-    scan = scanNames(profileSkillsDir(profile));
+    scan = scanSkills(profileSkillsDir(profile));
     profileScans.set(profile, scan);
   }
   return scan;
@@ -72,17 +78,20 @@ export function useLoadedSkills(workspace?: string): SkillGroups {
   const [groups, setGroups] = useState<SkillGroups>({ global: [], profiles: [] });
   useEffect(() => {
     let alive = true;
-    userScan ??= scanNames(USER_SKILLS_DIR);
-    const projectScan = workspace ? scanNames(`${workspace}/.claude/skills`) : Promise.resolve<string[]>([]);
+    userScan ??= scanSkills(USER_SKILLS_DIR);
+    const projectScan = workspace ? scanSkills(`${workspace}/.claude/skills`) : Promise.resolve<SkillItem[]>([]);
     const appliedScan = workspace ? readAppliedProfiles(workspace) : Promise.resolve<string[]>([]);
     void (async () => {
       const [user, project, applied] = await Promise.all([userScan, projectScan, appliedScan]);
       const profileEntries = await Promise.all(
-        applied.toSorted().map(async (name) => ({ name, skills: (await scanProfile(name)).toSorted() }))
+        applied.toSorted().map(async (name) => ({ name, skills: (await scanProfile(name)).toSorted(byName) }))
       );
       if (!alive) return;
+      // Project-local wins over user-global on name collision.
+      const merged = new Map<string, SkillItem>();
+      for (const s of [...project, ...user]) if (!merged.has(s.name)) merged.set(s.name, s);
       setGroups({
-        global: Array.from(new Set([...project, ...user])).toSorted(),
+        global: Array.from(merged.values()).sort(byName),
         profiles: profileEntries.filter((p) => p.skills.length > 0),
       });
     })();
