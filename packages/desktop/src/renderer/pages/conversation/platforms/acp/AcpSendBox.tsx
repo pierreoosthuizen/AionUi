@@ -5,6 +5,7 @@ import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import CommitBar from '@/renderer/components/chat/CommitBar';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
   type MobileActionSheetOption,
@@ -417,6 +418,16 @@ Please check your local CLI tool authentication status`,
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
+    // `!`-prefix shell mode: route the command to the agent's Bash tool.
+    const trimmed = message.trimStart();
+    let outgoing = message;
+    if (trimmed.startsWith('!')) {
+      const cmd = trimmed.slice(1).trim();
+      if (cmd) {
+        outgoing = `Run this shell command in the workspace and show its output. Do not do anything else.\n\n\`\`\`bash\n${cmd}\n\`\`\``;
+      }
+    }
+
     clearFiles();
     emitter.emit('acp.selected.file.clear');
 
@@ -427,12 +438,21 @@ Please check your local CLI tool authentication status`,
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: allFiles });
+      enqueue({ input: outgoing, files: allFiles });
       return;
     }
 
-    await executeCommand({ input: message, files: allFiles });
+    await executeCommand({ input: outgoing, files: allFiles });
   };
+
+  const handleCommit = useCallback(() => {
+    void onSendHandler(
+      'Stage all current changes and create a single git commit with a concise conventional-commit message summarizing them. Do not push.'
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atPath, uploadFile, isBusy, hasPendingCommands]);
+
+  const isBashMode = content.trimStart().startsWith('!');
 
   const handleEditQueuedCommand = useCallback(
     (item: ConversationCommandQueueItem) => {
@@ -669,6 +689,8 @@ Please check your local CLI tool authentication status`,
         onStop={effectiveHandleStop}
       />
 
+      <CommitBar t={t} workspace={workspacePath} onCommit={handleCommit} disabled={isBusy} />
+
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
@@ -680,10 +702,14 @@ Please check your local CLI tool authentication status`,
         }}
         loading={teamRuntime?.loading ?? isBusy}
         disabled={false}
-        placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || backend,
-          defaultValue: `Send message to {{backend}}...`,
-        })}
+        placeholder={
+          isBashMode
+            ? t('acp.sendbox.bashPlaceholder', { defaultValue: 'Enter a shell command' })
+            : t('acp.sendbox.placeholder', {
+                backend: agent_name || backend,
+                defaultValue: `Send message to {{backend}}...`,
+              })
+        }
         onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
@@ -720,6 +746,11 @@ Please check your local CLI tool authentication status`,
         }
         prefix={
           <>
+            {isBashMode && (
+              <div className='mb-8px'>
+                <Tag color='purple'>{t('acp.sendbox.bashTag', { defaultValue: 'bash' })}</Tag>
+              </div>
+            )}
             {uploadFile.length > 0 && (
               <HorizontalFileList>
                 {uploadFile.map((path) => (

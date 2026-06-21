@@ -303,6 +303,10 @@
       "project": "Project",
       "agent": "Agent"
     },
+    "commit": {
+      "button": "Commit changes",
+      "changeCount": "{{count}} changed"
+    },
     "skills": {
       "tab": "Skills",
       "search": "Search skills…",

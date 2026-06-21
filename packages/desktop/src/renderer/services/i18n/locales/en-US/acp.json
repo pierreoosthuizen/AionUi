@@ -8,7 +8,9 @@
     "failed": "Failed to send message: {{error}}"
   },
   "sendbox": {
-    "placeholder": "Send message to {{backend}}..."
+    "placeholder": "Send message to {{backend}}...",
+    "bashPlaceholder": "Enter a shell command",
+    "bashTag": "bash"
   },
   "image": {
     "download": "Download",
