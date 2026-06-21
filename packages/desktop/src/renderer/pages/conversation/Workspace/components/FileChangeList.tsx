@@ -8,8 +8,8 @@ import { ipcBridge } from '@/common';
 import type { FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
 import Diff2Html from '@/renderer/components/media/Diff2Html';
 import { isTextFile } from '@/renderer/services/FileService';
-import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';
-import { Down, Minus, Plus, PreviewOpen, Redo, Refresh, Right } from '@icon-park/react';
+import { Button, Empty, Message, Spin, Tooltip } from '@arco-design/web-react';
+import { Down, Forbid, Minus, Plus, PreviewOpen, Redo, Refresh, Right } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -260,6 +260,26 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
     [diffCache, loadDiffState, onOpenDiff]
   );
 
+  const handleAddToGitignore = useCallback(
+    async (relativePath: string) => {
+      const gitignorePath = `${workspace.replace(/[/\\]+$/, '')}/.gitignore`;
+      try {
+        const existing = (await ipcBridge.fs.readFile.invoke({ path: gitignorePath })) ?? '';
+        const alreadyIgnored = existing.split('\n').some((l) => l.trim() === relativePath);
+        if (!alreadyIgnored) {
+          const sep = existing === '' || existing.endsWith('\n') ? '' : '\n';
+          await ipcBridge.fs.writeFile.invoke({ path: gitignorePath, data: `${existing}${sep}${relativePath}\n` });
+        }
+        Message.success(t('conversation.workspace.changes.gitignoreSuccess'));
+        onRefresh();
+      } catch (err) {
+        console.error('[FileChangeList] Failed to update .gitignore:', err);
+        Message.error(t('conversation.workspace.changes.gitignoreFailed'));
+      }
+    },
+    [workspace, onRefresh, t]
+  );
+
   const groupedChanges = useMemo(
     () =>
       isGitRepo
@@ -407,6 +427,13 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
                           icon={<PreviewOpen size={14} />}
                           onClick={() => {
                             void handleOpenPreview(change);
+                          }}
+                        />
+                        <ActionBtn
+                          tooltip={t('conversation.workspace.changes.gitignore')}
+                          icon={<Forbid size={14} />}
+                          onClick={() => {
+                            void handleAddToGitignore(change.relativePath);
                           }}
                         />
                         {group.renderActions(change)}

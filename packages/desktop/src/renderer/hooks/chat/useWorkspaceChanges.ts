@@ -18,7 +18,9 @@ type WorkspaceChanges = {
 const EMPTY: WorkspaceChanges = { count: 0, branch: null, mode: '' };
 
 /**
- * Read-only view of the workspace's change count + branch for the commit bar.
+ * Read-only view of the workspace's STAGED change count + branch for the commit
+ * bar. Count is staged-only so the bar (and its Commit button) only appears once
+ * files are actually staged — matching Claude Desktop's behaviour.
  * Uses `getInfo`/`compare` only — never `init`/`dispose` — so it does NOT
  * interfere with the Workspace panel's `useFileChanges`, which owns the snapshot
  * lifecycle. If the snapshot isn't initialized yet, calls fail quietly and the
@@ -42,7 +44,7 @@ export function useWorkspaceChanges(workspace?: string): WorkspaceChanges {
           ipcBridge.fileSnapshot.getInfo.invoke({ workspace }),
           ipcBridge.fileSnapshot.compare.invoke({ workspace }),
         ]);
-        if (alive) setState({ branch: info.branch, mode: info.mode, count: cmp.staged.length + cmp.unstaged.length });
+        if (alive) setState({ branch: info.branch, mode: info.mode, count: cmp.staged.length });
       } catch {
         if (alive) setState(EMPTY);
       }

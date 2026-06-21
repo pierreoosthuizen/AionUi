@@ -383,7 +383,10 @@
       "discard": "Discard Changes",
       "reset": "Revert Changes",
       "noUnstaged": "No unstaged changes",
-      "noStaged": "No staged changes"
+      "noStaged": "No staged changes",
+      "gitignore": "Add to .gitignore",
+      "gitignoreSuccess": "Added to .gitignore",
+      "gitignoreFailed": "Failed to update .gitignore"
     },
     "openWorkspace": "Open project folder",
     "openWith": {
