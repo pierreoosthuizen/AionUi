@@ -39,15 +39,49 @@ type ScanResult = { skills?: Array<{ name?: string; description?: string }> };
 
 const byName = (a: SkillItem, b: SkillItem): number => a.name.localeCompare(b.name);
 
-function scanSkills(dir: string): Promise<SkillItem[]> {
-  return fs.scanForSkills
-    .invoke({ folder_path: dir })
-    .then((res): SkillItem[] =>
-      ((res as unknown as ScanResult)?.skills ?? [])
-        .filter((s): s is { name: string; description?: string } => !!s.name)
-        .map((s) => ({ name: s.name, description: s.description ?? '' }))
-    )
-    .catch((): SkillItem[] => []);
+// The aioncore scanner mis-parses YAML block scalars: a `description: >` (folded)
+// or `description: |` (literal) frontmatter yields just the bare indicator. Detect
+// that (and empty) so we can repair it by reading the SKILL.md ourselves.
+const isBadDesc = (d: string): boolean => d.trim() === '' || /^[>|][+-]?\d*$/.test(d.trim());
+
+// Minimal frontmatter `description:` extractor — handles inline, quoted, and
+// block-scalar (`>` / `|`) forms. Good enough for a tooltip; not a full YAML parser.
+function parseDescription(md: string): string {
+  const fm = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!fm) return '';
+  const lines = fm[1].split(/\r?\n/);
+  const idx = lines.findIndex((l) => /^description:/.test(l));
+  if (idx === -1) return '';
+  const inline = lines[idx].replace(/^description:\s*/, '').trim();
+  if (/^[>|][+-]?\d*$/.test(inline)) {
+    const block: string[] = [];
+    for (let i = idx + 1; i < lines.length; i++) {
+      if (/^\s+\S/.test(lines[i]) || lines[i].trim() === '') block.push(lines[i].trim());
+      else break;
+    }
+    return block.join(' ').replace(/\s+/g, ' ').trim();
+  }
+  return inline.replace(/^["']|["']$/g, '');
+}
+
+async function scanSkills(dir: string): Promise<SkillItem[]> {
+  let raw: SkillItem[];
+  try {
+    const res = (await fs.scanForSkills.invoke({ folder_path: dir })) as unknown as ScanResult;
+    raw = (res?.skills ?? [])
+      .filter((s): s is { name: string; description?: string } => !!s.name)
+      .map((s) => ({ name: s.name, description: s.description ?? '' }));
+  } catch {
+    return [];
+  }
+  // Repair only the broken ones — read & parse `<dir>/<name>/SKILL.md`.
+  return Promise.all(
+    raw.map(async (s): Promise<SkillItem> => {
+      if (!isBadDesc(s.description)) return s;
+      const md = await fs.readFile.invoke({ path: `${dir}/${s.name}/SKILL.md` }).catch((): null => null);
+      return { name: s.name, description: (md && parseDescription(md)) || s.description };
+    })
+  );
 }
 
 async function readAppliedProfiles(workspace: string): Promise<string[]> {
