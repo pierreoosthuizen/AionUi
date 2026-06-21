@@ -127,10 +127,12 @@ export const useGuidAgentSelection = ({
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(() => {
+    // ponytail: fork-local — Agora is hardcoded to Claude Code. aionui/aionrs is not
+    // a selectable agent, so the default and every fallback resolve to 'claude'.
     try {
-      return configService.get('guid.lastSelectedAgent') || 'aionrs';
+      return configService.get('guid.lastSelectedAgent') || 'claude';
     } catch {
-      return 'aionrs';
+      return 'claude';
     }
   });
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
@@ -339,7 +341,7 @@ export const useGuidAgentSelection = ({
       const currentIsPreset = selectedAgentKey.startsWith('custom:');
       if (currentIsPreset) {
         const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'claude';
         _setSelectedAgentKey(fallbackKey);
         configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
           console.error('Failed to save reset agent key:', error);
@@ -525,7 +527,7 @@ export const useGuidAgentSelection = ({
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
     const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
-    return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+    return firstCliAgent ? getAgentKey(firstCliAgent) : 'claude';
   }, [availableAgents]);
 
   return {
