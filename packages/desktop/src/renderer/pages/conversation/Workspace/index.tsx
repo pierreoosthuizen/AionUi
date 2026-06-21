@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import SkillsList from './components/SkillsList';
+import ContextUsageFooter from './components/ContextUsageFooter';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
@@ -515,6 +516,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             />
           </FlexFullContainer>
         )}
+
+        {/* Context window usage — pinned to the bottom of the Project panel */}
+        {!isWorkspaceCollapsed && <ContextUsageFooter t={t} conversation_id={conversation_id} />}
       </div>
     </>
   );
