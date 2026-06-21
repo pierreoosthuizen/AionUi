@@ -106,10 +106,12 @@ function wrapChannel(m: BrokerMessage): string {
 
 async function injectTurn(port: number, conversationId: string, input: string): Promise<boolean> {
   try {
+    // Wire field is `content` (the ipcBridge sendMessage mapper renames input→content);
+    // conversation_id travels in the URL, not the body. Posting `input` yields 400.
     const res = await fetch(`http://127.0.0.1:${port}/api/conversations/${conversationId}/messages`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ input, conversation_id: conversationId }),
+      body: JSON.stringify({ content: input }),
     });
     return res.ok;
   } catch {
