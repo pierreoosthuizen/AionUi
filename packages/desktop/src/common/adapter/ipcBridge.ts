@@ -126,6 +126,13 @@ export const shell = {
   openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with'
   ),
+  // Native (Electron main, macOS `open`) — aioncore's open-folder-with launch is unreliable,
+  // so the workspace-open button uses these instead.
+  openFolderNative: bridge.buildProvider<
+    void,
+    { folder_path: string; tool: 'vscode' | 'terminal' | 'ghostty' | 'explorer' }
+  >('shell:open-folder-native'),
+  checkAppInstalled: bridge.buildProvider<boolean, { tool: 'vscode' | 'ghostty' }>('shell:check-app-installed'),
 };
 
 // ---------------------------------------------------------------------------

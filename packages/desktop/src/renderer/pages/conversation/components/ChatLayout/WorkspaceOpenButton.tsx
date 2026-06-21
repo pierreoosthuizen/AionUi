@@ -1,11 +1,11 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Command, Down, Folder, Terminal } from '@icon-park/react';
+import { Command, Down, Folder, Ghost, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type ToolType = 'vscode' | 'terminal' | 'explorer';
+type ToolType = 'vscode' | 'terminal' | 'ghostty' | 'explorer';
 
 interface ToolOption {
   key: ToolType;
@@ -34,19 +34,25 @@ const STORAGE_KEY = 'workspace-open-preference';
 const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath, isTemporary }) => {
   const { t } = useTranslation();
   const [vscodeInstalled, setVscodeInstalled] = useState(false);
+  const [ghosttyInstalled, setGhosttyInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
 
-  // Check if VS Code is installed and load preferred tool
+  // Check which optional apps are installed and load preferred tool
   useEffect(() => {
     if (isTemporary) return;
     const checkTools = async () => {
       try {
-        const installed = await ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' });
-        setVscodeInstalled(installed);
+        const [vscode, ghostty] = await Promise.all([
+          ipcBridge.shell.checkAppInstalled.invoke({ tool: 'vscode' }),
+          ipcBridge.shell.checkAppInstalled.invoke({ tool: 'ghostty' }),
+        ]);
+        setVscodeInstalled(vscode);
+        setGhosttyInstalled(ghostty);
       } catch (error) {
-        console.warn('[WorkspaceOpenButton] Failed to check VS Code:', error);
+        console.warn('[WorkspaceOpenButton] Failed to check installed apps:', error);
         setVscodeInstalled(false);
+        setGhosttyInstalled(false);
       }
     };
 
@@ -61,7 +67,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   const handleOpenWith = async (tool: ToolType) => {
     try {
-      await ipcBridge.shell.openFolderWith.invoke({ folder_path: workspacePath, tool });
+      await ipcBridge.shell.openFolderNative.invoke({ folder_path: workspacePath, tool });
       // Save preference
       localStorage.setItem(STORAGE_KEY, tool);
       setPreferredTool(tool);
@@ -84,6 +90,12 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
       label: t('conversation.workspace.openWith.terminal', { defaultValue: 'Terminal' }),
       icon: <Terminal size={16} />,
       available: true,
+    },
+    {
+      key: 'ghostty',
+      label: t('conversation.workspace.openWith.ghostty', { defaultValue: 'Ghostty' }),
+      icon: <Ghost size={16} />,
+      available: ghosttyInstalled,
     },
     {
       key: 'explorer',
@@ -112,6 +124,8 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     switch (currentTool) {
       case 'vscode':
         return <Command size={16} />;
+      case 'ghostty':
+        return <Ghost size={16} />;
       case 'explorer':
         return <Folder size={16} />;
       case 'terminal':
