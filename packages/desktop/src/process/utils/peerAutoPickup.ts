@@ -87,8 +87,9 @@ async function conversationsByWorkspace(port: number): Promise<Map<string, strin
   try {
     const res = await fetch(`http://127.0.0.1:${port}/api/conversations?limit=100`);
     if (!res.ok) return map;
-    const data = (await res.json()) as { items?: ApiConversation[] } | ApiConversation[];
-    const list = Array.isArray(data) ? data : (data.items ?? []);
+    // aioncore envelopes list responses as { success, data: { items, total, has_more } }.
+    const body = (await res.json()) as { data?: { items?: ApiConversation[] } };
+    const list = body.data?.items ?? [];
     for (const c of list) {
       const ws = c.extra && typeof c.extra.workspace === 'string' ? c.extra.workspace : '';
       if (ws) map.set(ws, c.id); // last wins → most recent in default ordering
