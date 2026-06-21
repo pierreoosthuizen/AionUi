@@ -626,6 +626,7 @@ export type I18nKey =
   | 'conversation.workspace.openWith.terminal'
   | 'conversation.workspace.openWith.vscode'
   | 'conversation.workspace.openWorkspace'
+  | 'conversation.workspace.panelTitle'
   | 'conversation.workspace.pasteConfirm_cancel'
   | 'conversation.workspace.pasteConfirm_fileName'
   | 'conversation.workspace.pasteConfirm_message'

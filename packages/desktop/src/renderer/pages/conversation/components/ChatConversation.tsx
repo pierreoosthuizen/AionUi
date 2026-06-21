@@ -306,7 +306,7 @@ const ChatConversation: React.FC<{
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.panelTitle')}</span>
       </div>
     );
   }, [t]);
