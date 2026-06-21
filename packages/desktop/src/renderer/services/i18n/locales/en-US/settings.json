@@ -1,35 +1,7 @@
 {
   "title": "Settings",
   "skillsHub": {
-    "title": "Skills Hub",
-    "description": "Centrally manage AI agent skills. Install once, use across all assistants.",
-    "mySkillsTitle": "My Skills",
-    "noSkills": "No skills found. Import some to get started.",
-    "custom": "Custom",
-    "builtin": "Built-in",
-    "manualImport": "Import Skills",
-    "tipTitle": "Usage Tip:",
-    "tipContent": "Skills configured here can be enabled for any assistant in the \"Assistants\" setup page; import a skill folder, a parent folder, or a zip archive.",
-    "fetchError": "Failed to fetch skills",
-    "importSuccess": "Skill imported successfully",
-    "importSuccessDetailed": "Imported {{count}} skill(s): {{names}}",
-    "importFailed": "Failed to import skill",
-    "importError": "Error importing skill",
-    "deleteSuccess": "Skill deleted",
-    "deleteFailed": "Failed to delete skill",
-    "deleteError": "Error deleting skill",
-    "deleteConfirmTitle": "Delete Skill",
-    "deleteConfirmContent": "Are you sure you want to delete \"{{name}}\"?",
-    "manageInHub": "Manage in Skills Hub",
-    "recommend": "Recommend Skills",
-    "recommendSuccess": "Recommended successfully: {{count}} skills selected based on rules",
-    "noRecommendations": "No matching skills found, please select manually",
-    "addCustomPath": "Add Custom Skill Path",
-    "customPathNamePlaceholder": "e.g. My Custom Skills",
-    "customPathLabel": "Skill Directory Path",
-    "customPathPlaceholder": "e.g. C:\\Users\\me\\.mytools\\skills",
-    "searchPlaceholder": "Search skills...",
-    "noSearchResults": "No matching skills found"
+    "importError": "Error importing skill"
   },
   "authMethod": "Authentication",
   "geminiApiKey": "Gemini API Key",
@@ -302,10 +274,8 @@
   "darkMode": "Dark",
   "agent": "Agent",
   "tools": "Tools",
-  "capabilities": "Capabilities",
   "capabilitiesTab": {
-    "skills": "Skills",
-    "tools": "Tools"
+    "skills": "Skills"
   },
   "webui": "Remote",
   "installed": "Installed",

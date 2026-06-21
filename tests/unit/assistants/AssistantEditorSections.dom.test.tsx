@@ -455,7 +455,7 @@ describe('AssistantEditorSections', () => {
     expect(promptScope.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
   });
 
-  it('renders single default-skill and default-mcp controls with hub links', () => {
+  it('renders single default-skill and default-mcp controls without removed hub links', () => {
     renderWithProviders(
       <AssistantEditorSections
         editor={createEditor({
@@ -488,8 +488,9 @@ describe('AssistantEditorSections', () => {
 
     expect(screen.queryByTestId('select-assistant-default-skills-mode')).not.toBeInTheDocument();
     expect(screen.queryByTestId('select-assistant-default-mcp-mode')).not.toBeInTheDocument();
-    expect(screen.getByTestId('btn-open-skills-settings')).toBeInTheDocument();
-    expect(screen.getByTestId('btn-open-mcp-settings')).toBeInTheDocument();
+    // Capabilities section was removed; the "manage in hub" links no longer render.
+    expect(screen.queryByTestId('btn-open-skills-settings')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('btn-open-mcp-settings')).not.toBeInTheDocument();
   });
 
   it('switches default skills from auto to fixed when selecting a concrete skill', async () => {

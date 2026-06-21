@@ -594,34 +594,11 @@ export const fs = {
   listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
     '/api/skills/builtin-auto'
   ),
-  materializeSkillsForAgent: httpPost<
-    { skills: Array<{ name: string; source_path: string }> },
-    { conversation_id: string; skills: string[] }
-  >('/api/skills/materialize-for-agent'),
-  readSkillInfo: httpPost<{ name: string; description: string }, { skill_path: string }>('/api/skills/info'),
-  importSkill: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
-  detectCommonSkillPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/detect-paths'),
-  detectAndCountExternalSkills: httpGet<
-    Array<{
-      name: string;
-      path: string;
-      source: string;
-      skills: Array<{ name: string; description: string; path: string }>;
-    }>,
-    void
-  >('/api/skills/detect-external'),
   importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
     '/api/skills/import-symlink'
-  ),
-  deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
-  getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
-  getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
-  addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
-  removeCustomExternalPath: httpDelete<void, { path: string }>(
-    (p) => `/api/skills/external-paths?path=${encodeURIComponent(p.path)}`
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
