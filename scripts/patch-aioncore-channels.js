@@ -54,7 +54,9 @@ function patchFile(file) {
 
 const files = findAdapterFiles(bundledRoot);
 if (files.length === 0) {
-  console.log('patch-aioncore-channels: no bundled claude-agent-acp adapter found (run prepareAioncore first) — skipping.');
+  console.log(
+    'patch-aioncore-channels: no bundled claude-agent-acp adapter found (run prepareAioncore first) — skipping.'
+  );
   process.exit(0);
 }
 
