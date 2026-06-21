@@ -163,20 +163,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         </ConfigRow>
 
         {showSkills ? (
-          <ConfigRow
-            label={t('settings.assistantDefaultSkillsLabel', { defaultValue: 'Default Skills' })}
-            hint={
-              <Button
-                type='text'
-                size='mini'
-                onClick={() => navigate('/settings/capabilities?tab=skills')}
-                data-testid='btn-open-skills-settings'
-                className='!h-auto !px-0 !text-primary-6'
-              >
-                {t('settings.skillsHub.manageInHub', { defaultValue: 'Manage in Skills Hub' })}
-              </Button>
-            }
-          >
+          <ConfigRow label={t('settings.assistantDefaultSkillsLabel', { defaultValue: 'Default Skills' })}>
             {canEditDefaultSkillsAndMcps ? (
               <Select
                 className={styles.summarySelect}
@@ -272,20 +259,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
           </ConfigRow>
         ) : null}
 
-        <ConfigRow
-          label={t('settings.assistantDefaultMcpLabel', { defaultValue: 'Default MCP' })}
-          hint={
-            <Button
-              type='text'
-              size='mini'
-              onClick={() => navigate('/settings/capabilities?tab=tools')}
-              data-testid='btn-open-mcp-settings'
-              className='!h-auto !px-0 !text-primary-6'
-            >
-              {t('settings.assistantOpenMcpSettings', { defaultValue: 'Open MCP settings' })}
-            </Button>
-          }
-        >
+        <ConfigRow label={t('settings.assistantDefaultMcpLabel', { defaultValue: 'Default MCP' })}>
           {canEditDefaultSkillsAndMcps ? (
             <Select
               className={styles.summarySelect}

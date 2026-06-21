@@ -11,7 +11,6 @@ import { Popover } from '@arco-design/web-react';
 import { Lightning } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 
 type ConversationSkillsIndicatorProps = {
@@ -25,7 +24,6 @@ type ConversationSkillsIndicatorProps = {
  */
 const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = ({ conversation }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const names = (conversation?.extra as { skills?: string[] } | undefined)?.skills ?? [];
 
@@ -37,10 +35,6 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
 
   const descriptionByName = new Map((skillIndex ?? []).map((s) => [s.name, s.description]));
 
-  const handleSkillClick = (skillName: string) => {
-    navigate(`/settings/capabilities?tab=skills&highlight=${encodeURIComponent(skillName)}`);
-  };
-
   const content = (
     <div className='max-w-320px max-h-300px overflow-y-auto'>
       <div className='text-12px font-500 text-t-secondary mb-8px'>
@@ -50,8 +44,7 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
         {names.map((name) => (
           <div
             key={name}
-            className='flex items-center gap-8px py-4px px-8px rounded-4px hover:bg-2 cursor-pointer text-13px text-t-primary truncate'
-            onClick={() => handleSkillClick(name)}
+            className='flex items-center gap-8px py-4px px-8px rounded-4px text-13px text-t-primary truncate'
             title={descriptionByName.get(name) ?? ''}
           >
             {name}

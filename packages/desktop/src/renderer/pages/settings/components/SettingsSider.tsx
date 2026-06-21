@@ -3,7 +3,7 @@ import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import { Computer, Lightning, LinkCloud, Puzzle, Speed, System } from '@icon-park/react';
+import { Computer, LinkCloud, Puzzle, Speed, System } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,7 +12,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-export const BUILTIN_TAB_IDS = ['agent', 'model', 'capabilities', 'appearance', 'system'] as const;
+export const BUILTIN_TAB_IDS = ['agent', 'model', 'appearance', 'system'] as const;
 
 /**
  * Legacy anchor IDs that have been merged into other tabs.
@@ -20,8 +20,6 @@ export const BUILTIN_TAB_IDS = ['agent', 'model', 'capabilities', 'appearance', 
  * This keeps older extensions working without requiring them to update.
  */
 export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
-  'skills-hub': 'capabilities',
-  tools: 'capabilities',
   display: 'appearance',
 };
 
@@ -64,12 +62,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         label: t('settings.agents', { defaultValue: 'Agents' }),
         icon: <Speed />,
         path: 'agent',
-      },
-      capabilities: {
-        id: 'capabilities',
-        label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
-        icon: <Lightning />,
-        path: 'capabilities',
       },
       appearance: { id: 'appearance', label: t('settings.appearancePanel'), icon: <Computer />, path: 'appearance' },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },

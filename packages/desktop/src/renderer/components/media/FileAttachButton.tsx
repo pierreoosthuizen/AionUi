@@ -87,12 +87,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     conversationContext?.loadedMcpServers
   );
 
-  const handleOpenMcpSettings = useCallback(() => {
-    setOpen(false);
-    setMcpOpen(false);
-    void navigate('/settings/capabilities?tab=tools');
-  }, [navigate]);
-
   const handleLocalFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const fileList = e.target.files;
@@ -163,30 +157,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           title={item.reason}
         />
       ))}
-      <div style={{ margin: '4px 12px', height: 1, backgroundColor: 'var(--color-border-1, #e5e6eb)' }} />
-      <div className='px-12px py-8px'>
-        <div className='text-12px leading-16px text-t-secondary whitespace-normal break-words'>
-          {t('conversation.mcp.managementHint', {
-            defaultValue:
-              'If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.',
-          })}
-        </div>
-        <Button
-          type='text'
-          size='mini'
-          className='mt-6px h-auto! px-0! text-12px! inline-flex! items-center! gap-4px!'
-          onClick={handleOpenMcpSettings}
-        >
-          <span className='leading-none'>
-            {t('conversation.mcp.openSettings', {
-              defaultValue: 'Open Tools settings',
-            })}
-          </span>
-          <span className='inline-flex h-12px w-12px flex-shrink-0 items-center justify-center'>
-            <Right theme='outline' size={12} strokeWidth={3} className='block' />
-          </span>
-        </Button>
-      </div>
     </div>
   );
 
