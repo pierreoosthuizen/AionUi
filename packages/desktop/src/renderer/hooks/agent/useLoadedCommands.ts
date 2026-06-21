@@ -26,17 +26,22 @@ import {
 const USER_COMMANDS_DIR = `${CLAUDE_DIR}/commands`;
 const profileCommandsDir = (profile: string): string => `${CLAUDE_DIR}/profiles/commands/${profile}`;
 
+// `/api/fs/dir` has no response mapper in ipcBridge, so it returns the backend's
+// raw snake_case nodes (not the camelCase IDirOrFile the bridge type claims).
+type RawFsNode = { name: string; full_path: string; is_file: boolean };
+
 async function scanCommands(dir: string): Promise<SkillItem[]> {
-  let files: Array<{ name: string; fullPath: string; isFile: boolean }>;
+  let files: RawFsNode[];
   try {
-    files = await fs.getFilesByDir.invoke({ dir, root: dir });
+    files = (await fs.getFilesByDir.invoke({ dir, root: dir })) as unknown as RawFsNode[];
   } catch {
     return [];
   }
-  const md = files.filter((f) => f.isFile && f.name.endsWith('.md'));
+  // Top-level `.md` files only — commands are flat; subdirs (e.g. references/) are not commands.
+  const md = (files ?? []).filter((f) => f.is_file && f.name.endsWith('.md'));
   const items = await Promise.all(
     md.map(async (f): Promise<SkillItem> => {
-      const content = await fs.readFile.invoke({ path: f.fullPath }).catch((): null => null);
+      const content = await fs.readFile.invoke({ path: f.full_path }).catch((): null => null);
       return { name: f.name.replace(/\.md$/, ''), description: content ? parseDescription(content) : '' };
     })
   );
