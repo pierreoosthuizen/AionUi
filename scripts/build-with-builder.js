@@ -107,10 +107,13 @@ function saveCurrentHash(hash) {
 
 function viteBuildExists() {
   const outDir = path.resolve(__dirname, '../out');
-  const mainDir = path.join(outDir, 'main');
-  const rendererDir = path.join(outDir, 'renderer');
+  const mainEntry = path.join(outDir, 'main', 'index.js');
+  const rendererEntry = path.join(outDir, 'renderer', 'index.html');
 
-  return fs.existsSync(path.join(mainDir, 'index.js')) && fs.existsSync(path.join(rendererDir, 'index.html'));
+  if (!fs.existsSync(mainEntry) || !fs.existsSync(rendererEntry)) return false;
+  // `electron-vite dev` leaves a 0-byte out/renderer/index.html placeholder. If that
+  // stale stub survives, an incremental build packages a blank app. Require real output.
+  return fs.statSync(rendererEntry).size > 0 && fs.statSync(mainEntry).size > 0;
 }
 
 function shouldSkipViteBuild(skipViteFlag, forceFlag) {
