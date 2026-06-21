@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="currentColor" role="img" aria-label="Agora">
+  <!-- floating spheres (modern accent) -->
+  <circle cx="30" cy="16" r="4"/>
+  <circle cx="41" cy="11" r="5"/>
+  <circle cx="53" cy="17" r="3.5"/>
+  <!-- pediment -->
+  <path d="M41 26 67 42 15 42 Z"/>
+  <!-- architrave -->
+  <rect x="15" y="44" width="52" height="4" rx="1"/>
+  <!-- columns -->
+  <rect x="19" y="50" width="6" height="15" rx="1"/>
+  <rect x="31" y="50" width="6" height="15" rx="1"/>
+  <rect x="43" y="50" width="6" height="15" rx="1"/>
+  <rect x="55" y="50" width="6" height="15" rx="1"/>
+  <!-- stylobate / base -->
+  <rect x="13" y="66" width="54" height="5" rx="1.5"/>
+</svg>
