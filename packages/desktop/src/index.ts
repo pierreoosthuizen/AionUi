@@ -270,6 +270,13 @@ const scheduleBackendMigrations = (): void => {
     } catch (error) {
       console.error('[AionUi] Backend migration hook threw:', error);
     }
+    try {
+      // Re-apply claude-peers auto-pickup to any already-extracted adapter runtime.
+      const { patchAcpChannels } = await import('./process/utils/patchAcpChannels');
+      patchAcpChannels();
+    } catch (error) {
+      console.error('[AionUi] patchAcpChannels hook threw:', error);
+    }
   })();
 };
 

@@ -469,6 +469,10 @@ try {
     version: resolveAioncoreVersion(projectRoot),
   });
 
+  // 5b. Patch the bundled claude-agent-acp adapter for claude-peers auto-pickup.
+  // Must run AFTER prepareAioncore (which re-fetches/clobbers the adapter).
+  require('./patch-aioncore-channels.js').patchAdapters([path.join(projectRoot, 'resources', 'bundled-aioncore')]);
+
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
 

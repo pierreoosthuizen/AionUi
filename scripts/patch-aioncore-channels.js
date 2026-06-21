@@ -2,30 +2,44 @@
  * aionui-fork patch: enable claude-peers auto-pickup in the bundled
  * claude-agent-acp adapter.
  *
- * The adapter spawns the real `claude` binary with `extraArgs`. Adding
- * `--dangerously-load-development-channels server:claude-peers` makes inbound
- * claude-peers channel notifications inject as user turns (same as every CLI
- * peer), so AionUi peers auto-respond instead of waiting for a manual prompt.
+ * The adapter spawns the real `claude` binary. Two edits are needed so inbound
+ * claude-peers channel messages reach Agora's embedded agent the same way they
+ * reach every CLI peer:
  *
- * This edits a downloaded managed-resource, which is clobbered whenever
- * aioncore is re-fetched (prepareAioncore). Re-run this script after any
- * re-fetch:  node scripts/patch-aioncore-channels.js
+ *   1. mcpServers — add the claude-peers stdio server to the record the adapter
+ *      assembles, so the spawned claude actually runs it (registration + tools).
+ *   2. extraArgs — add `--dangerously-load-development-channels server:claude-peers`
+ *      so the channel transport binds to that server and pushes inject as turns.
  *
- * Idempotent: skips files already patched. No-op if no adapter is bundled yet.
+ * Without (1) the flag in (2) names a server that doesn't exist → no channel.
+ *
+ * This edits a downloaded managed-resource, clobbered whenever aioncore is
+ * re-fetched (prepareAioncore) or re-extracted to a runtime root. It is run from
+ * the build (against resources/bundled-aioncore) and re-applied at app startup
+ * against the extracted runtime roots. Idempotent; no-op if no adapter present.
+ *
+ * ponytail: hardcoded bun/server.ts path — personal single-machine build. The
+ * clean fix is an aioncore ACP spawn-config option, which the binary doesn't expose.
  */
 
 const fs = require('fs');
 const path = require('path');
 
+// --- (2) channels flag, inserted into extraArgs ---
 const FLAG_KEY = 'dangerously-load-development-channels';
 const FLAG_VALUE = 'server:claude-peers';
-const ANCHOR = '"replay-user-messages": "",';
-const INSERT = `"replay-user-messages": "",\n                // aionui-fork patch: enable claude-peers auto-pickup (channel\n                // messages inject as user turns). Re-applied by scripts/patch-aioncore-channels.js.\n                "${FLAG_KEY}": "${FLAG_VALUE}",`;
+const FLAG_ANCHOR = '"replay-user-messages": "",';
+const FLAG_INSERT = `"replay-user-messages": "",\n                // aionui-fork patch: enable claude-peers auto-pickup (channel\n                // messages inject as user turns). See scripts/patch-aioncore-channels.js.\n                "${FLAG_KEY}": "${FLAG_VALUE}",`;
 
-const projectRoot = path.resolve(__dirname, '..');
-const bundledRoot = path.join(projectRoot, 'resources', 'bundled-aioncore');
+// --- (1) claude-peers MCP server, inserted into the mcpServers assembly ---
+const MCP_MARKER = '"claude-peers":';
+const MCP_ANCHOR = 'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers },';
+const MCP_INSERT =
+  'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers, ' +
+  '"claude-peers": { type: "stdio", command: "/Users/pierreo/.bun/bin/bun", ' +
+  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: {} } },';
 
-/** Recursively collect every bundled adapter acp-agent.js. */
+/** Recursively collect every adapter acp-agent.js under a root. */
 function findAdapterFiles(dir, found = []) {
   let entries;
   try {
@@ -44,33 +58,57 @@ function findAdapterFiles(dir, found = []) {
   return found;
 }
 
+/** Apply both inserts to one file. Returns { flag, mcp } each 'patched'|'already'|'no-anchor'. */
 function patchFile(file) {
-  const src = fs.readFileSync(file, 'utf-8');
-  if (src.includes(FLAG_KEY)) return 'already';
-  if (!src.includes(ANCHOR)) return 'no-anchor';
-  fs.writeFileSync(file, src.replace(ANCHOR, INSERT));
-  return 'patched';
-}
+  let src = fs.readFileSync(file, 'utf-8');
+  const before = src;
+  const status = { flag: 'already', mcp: 'already' };
 
-const files = findAdapterFiles(bundledRoot);
-if (files.length === 0) {
-  console.log(
-    'patch-aioncore-channels: no bundled claude-agent-acp adapter found (run prepareAioncore first) — skipping.'
-  );
-  process.exit(0);
-}
-
-let patched = 0;
-for (const file of files) {
-  const result = patchFile(file);
-  const rel = path.relative(projectRoot, file);
-  if (result === 'patched') {
-    patched++;
-    console.log(`  ✓ patched ${rel}`);
-  } else if (result === 'already') {
-    console.log(`  • already patched ${rel}`);
-  } else {
-    console.warn(`  ! anchor not found, skipped ${rel}`);
+  if (!src.includes(FLAG_KEY)) {
+    status.flag = src.includes(FLAG_ANCHOR) ? 'patched' : 'no-anchor';
+    if (status.flag === 'patched') src = src.replace(FLAG_ANCHOR, FLAG_INSERT);
   }
+  if (!src.includes(MCP_MARKER)) {
+    status.mcp = src.includes(MCP_ANCHOR) ? 'patched' : 'no-anchor';
+    if (status.mcp === 'patched') src = src.replace(MCP_ANCHOR, MCP_INSERT);
+  }
+  if (src !== before) fs.writeFileSync(file, src);
+  return status;
 }
-console.log(`patch-aioncore-channels: ${patched} file(s) patched, ${files.length} total.`);
+
+/** Patch every adapter found under the given roots. Returns count of files changed. */
+function patchAdapters(roots) {
+  let changed = 0;
+  let total = 0;
+  for (const root of roots) {
+    for (const file of findAdapterFiles(root)) {
+      total++;
+      const { flag, mcp } = patchFile(file);
+      const rel = path.relative(path.resolve(__dirname, '..'), file);
+      if (flag === 'patched' || mcp === 'patched') {
+        changed++;
+        console.log(`  ✓ patched ${rel} (flag:${flag} mcp:${mcp})`);
+      } else if (flag === 'no-anchor' || mcp === 'no-anchor') {
+        console.warn(`  ! anchor missing ${rel} (flag:${flag} mcp:${mcp})`);
+      } else {
+        console.log(`  • already patched ${rel}`);
+      }
+    }
+  }
+  if (total === 0) {
+    console.log('patch-aioncore-channels: no claude-agent-acp adapter found — skipping.');
+  } else {
+    console.log(`patch-aioncore-channels: ${changed} file(s) patched, ${total} total.`);
+  }
+  return changed;
+}
+
+module.exports = { patchAdapters, findAdapterFiles, patchFile };
+
+// CLI: default to the bundled template; accept extra runtime roots as args.
+if (require.main === module) {
+  const projectRoot = path.resolve(__dirname, '..');
+  const roots = process.argv.slice(2);
+  if (roots.length === 0) roots.push(path.join(projectRoot, 'resources', 'bundled-aioncore'));
+  patchAdapters(roots);
+}
