@@ -277,6 +277,13 @@ const scheduleBackendMigrations = (): void => {
     } catch (error) {
       console.error('[AionUi] patchAcpChannels hook threw:', error);
     }
+    try {
+      // Watch the claude-peers broker and inject inbound peer messages as turns.
+      const { startPeerAutoPickup } = await import('./process/utils/peerAutoPickup');
+      startPeerAutoPickup();
+    } catch (error) {
+      console.error('[AionUi] startPeerAutoPickup hook threw:', error);
+    }
   })();
 };
 
