@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import SkillsList from './components/SkillsList';
+import CommandsList from './components/CommandsList';
 import ContextUsageFooter from './components/ContextUsageFooter';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
@@ -33,7 +34,8 @@ import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAbortUploadsOnConversationChange';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
-import type { WorkspaceProps, WorkspaceTab } from './types';
+import type { WorkspaceProps, WorkspaceSection, WorkspaceTab } from './types';
+import { SECTION_TABS } from './types';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -68,8 +70,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
 
-  // Tab state and file changes
+  // Section + tab state. Section is the top-level switch (Project | Agent);
+  // each section owns its own tab set. Switching section jumps to its first tab.
+  const [section, setSection] = useState<WorkspaceSection>('project');
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
+  const handleSectionChange = useCallback((next: WorkspaceSection) => {
+    setSection(next);
+    setActiveTab(SECTION_TABS[next][0]);
+  }, []);
   const [includeHidden, setIncludeHidden] = useState(false);
   const fileChangesHook = useFileChanges({ workspace });
 
@@ -287,6 +295,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         {/* Tab bar */}
         <WorkspaceTabBar
           t={t}
+          section={section}
+          onSectionChange={handleSectionChange}
           activeTab={activeTab}
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
@@ -499,10 +509,35 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Skills tab content */}
+        {/* Agent → Skills tab content */}
         {!isWorkspaceCollapsed && activeTab === 'skills' && (
           <FlexFullContainer containerClassName='overflow-hidden'>
             <SkillsList t={t} workspace={workspace} />
+          </FlexFullContainer>
+        )}
+
+        {/* Agent → Commands tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'commands' && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <CommandsList t={t} workspace={workspace} />
+          </FlexFullContainer>
+        )}
+
+        {/* Agent → MCP tab (placeholder — wiring TBD) */}
+        {!isWorkspaceCollapsed && activeTab === 'mcp' && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <div className='flex-1 flex items-center justify-center'>
+              <Empty description={t('conversation.workspace.mcp.empty', { defaultValue: 'No MCP servers' })} />
+            </div>
+          </FlexFullContainer>
+        )}
+
+        {/* Agent → Plugins tab (placeholder — wiring TBD) */}
+        {!isWorkspaceCollapsed && activeTab === 'plugins' && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <div className='flex-1 flex items-center justify-center'>
+              <Empty description={t('conversation.workspace.plugins.empty', { defaultValue: 'No plugins' })} />
+            </div>
           </FlexFullContainer>
         )}
 

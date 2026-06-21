@@ -298,10 +298,28 @@
     "refresh": "Refresh",
     "showHidden": "Show hidden files",
     "hideHidden": "Hide hidden files",
+    "section": {
+      "project": "Project",
+      "agent": "Agent"
+    },
     "skills": {
+      "tab": "Skills",
       "search": "Search skills…",
       "empty": "No skills loaded",
       "globalSection": "Global"
+    },
+    "commands": {
+      "tab": "Commands",
+      "search": "Search commands…",
+      "empty": "No commands loaded"
+    },
+    "mcp": {
+      "tab": "MCP",
+      "empty": "No MCP servers"
+    },
+    "plugins": {
+      "tab": "Plugins",
+      "empty": "No plugins"
     },
     "temporarySpace": "Temporary Space",
     "dragOverlayTitle": "Drop to import",

@@ -111,4 +111,11 @@ export type ExtractNodeKeyFn = (node: NodeInstance | null | undefined) => string
 export type GetPathSeparatorFn = (targetPath: string) => string;
 export type FindNodeByKeyFn = (list: IDirOrFile[], key: string) => IDirOrFile | null;
 
-export type WorkspaceTab = 'files' | 'changes' | 'skills';
+export type WorkspaceSection = 'project' | 'agent';
+export type WorkspaceTab = 'files' | 'changes' | 'skills' | 'commands' | 'mcp' | 'plugins';
+
+/** Which tabs belong to each top-level section, and the default tab when switching to it. */
+export const SECTION_TABS: Record<WorkspaceSection, WorkspaceTab[]> = {
+  project: ['files', 'changes'],
+  agent: ['skills', 'commands', 'mcp', 'plugins'],
+};

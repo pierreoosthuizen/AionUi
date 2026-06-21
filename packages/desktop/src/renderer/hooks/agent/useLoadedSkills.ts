@@ -20,7 +20,7 @@ import { fs } from '@/common/adapter/ipcBridge';
 
 // ponytail: fork-local — home hardcoded (personal single-user fork), same as
 // usePeerIdentity. Switch to a resolved home if this ever ships beyond this machine.
-const CLAUDE_DIR = '/Users/pierreo/.claude';
+export const CLAUDE_DIR = '/Users/pierreo/.claude';
 const USER_SKILLS_DIR = `${CLAUDE_DIR}/skills`;
 const profileSkillsDir = (profile: string): string => `${CLAUDE_DIR}/profiles/skills/${profile}`;
 
@@ -37,7 +37,7 @@ export type SkillGroups = {
 // declared return type is stale (says bare array), so read `.skills` defensively.
 type ScanResult = { skills?: Array<{ name?: string; description?: string }> };
 
-const byName = (a: SkillItem, b: SkillItem): number => a.name.localeCompare(b.name);
+export const byName = (a: SkillItem, b: SkillItem): number => a.name.localeCompare(b.name);
 
 // The aioncore scanner mis-parses YAML block scalars: a `description: >` (folded)
 // or `description: |` (literal) frontmatter yields just the bare indicator. Detect
@@ -46,7 +46,7 @@ const isBadDesc = (d: string): boolean => d.trim() === '' || /^[>|][+-]?\d*$/.te
 
 // Minimal frontmatter `description:` extractor — handles inline, quoted, and
 // block-scalar (`>` / `|`) forms. Good enough for a tooltip; not a full YAML parser.
-function parseDescription(md: string): string {
+export function parseDescription(md: string): string {
   const fm = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return '';
   const lines = fm[1].split(/\r?\n/);
@@ -84,7 +84,7 @@ async function scanSkills(dir: string): Promise<SkillItem[]> {
   );
 }
 
-async function readAppliedProfiles(workspace: string): Promise<string[]> {
+export async function readAppliedProfiles(workspace: string): Promise<string[]> {
   try {
     const raw = await fs.readFile.invoke({ path: `${workspace}/.claude/profiles-applied.json` });
     if (!raw) return [];

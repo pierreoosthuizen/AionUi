@@ -4,21 +4,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dropdown, Tabs } from '@arco-design/web-react';
+import { Dropdown, Radio, Tabs } from '@arco-design/web-react';
 import { BranchOne } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React from 'react';
-import type { WorkspaceTab } from '../types';
+import type { WorkspaceSection, WorkspaceTab } from '../types';
 
 type WorkspaceTabBarProps = {
   t: TFunction;
+  section: WorkspaceSection;
+  onSectionChange: (section: WorkspaceSection) => void;
   activeTab: WorkspaceTab;
   onTabChange: (tab: WorkspaceTab) => void;
   changeCount: number;
   branch: string | null;
 };
 
-const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabChange, changeCount, branch }) => {
+const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
+  t,
+  section,
+  onSectionChange,
+  activeTab,
+  onTabChange,
+  changeCount,
+  branch,
+}) => {
   const changesTitle = (
     <span className='flex items-center'>
       {t('conversation.workspace.changes.tab')}
@@ -57,18 +67,47 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
   ) : null;
 
   return (
-    <Tabs
-      activeTab={activeTab}
-      onChange={(key) => onTabChange(key as WorkspaceTab)}
-      type='line'
-      size='small'
-      className='px-12px [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px'
-      extra={branchDropdown}
-    >
-      <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
-      <Tabs.TabPane key='changes' title={changesTitle} />
-      <Tabs.TabPane key='skills' title={t('conversation.workspace.skills.tab', { defaultValue: 'Skills' })} />
-    </Tabs>
+    <div className='flex flex-col'>
+      {/* Section switcher: Project (files) vs Agent (skills/commands/mcp/plugins) */}
+      <div className='px-12px pt-8px'>
+        <Radio.Group
+          type='button'
+          size='small'
+          value={section}
+          onChange={(value) => onSectionChange(value as WorkspaceSection)}
+        >
+          <Radio value='project'>{t('conversation.workspace.section.project', { defaultValue: 'Project' })}</Radio>
+          <Radio value='agent'>{t('conversation.workspace.section.agent', { defaultValue: 'Agent' })}</Radio>
+        </Radio.Group>
+      </div>
+
+      <Tabs
+        activeTab={activeTab}
+        onChange={(key) => onTabChange(key as WorkspaceTab)}
+        type='line'
+        size='small'
+        className='px-12px [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px'
+        extra={section === 'project' ? branchDropdown : null}
+      >
+        {section === 'project'
+          ? [
+              <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />,
+              <Tabs.TabPane key='changes' title={changesTitle} />,
+            ]
+          : [
+              <Tabs.TabPane key='skills' title={t('conversation.workspace.skills.tab', { defaultValue: 'Skills' })} />,
+              <Tabs.TabPane
+                key='commands'
+                title={t('conversation.workspace.commands.tab', { defaultValue: 'Commands' })}
+              />,
+              <Tabs.TabPane key='mcp' title={t('conversation.workspace.mcp.tab', { defaultValue: 'MCP' })} />,
+              <Tabs.TabPane
+                key='plugins'
+                title={t('conversation.workspace.plugins.tab', { defaultValue: 'Plugins' })}
+              />,
+            ]}
+      </Tabs>
+    </div>
   );
 };
 
