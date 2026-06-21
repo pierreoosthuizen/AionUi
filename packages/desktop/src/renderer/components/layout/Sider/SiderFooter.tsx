@@ -10,6 +10,7 @@ import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowCircleLeft, CloseOne, Computer, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
+import { AGORA_VERSION } from '@/common/agoraVersion';
 import { DARK_THEME_ID, LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
@@ -149,6 +150,15 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             </div>
           </Dropdown>
         )}
+      </div>
+      {/* Agora version — under the settings button */}
+      <div
+        className={classNames(
+          'mt-4px text-t-tertiary text-10px leading-none select-none',
+          collapsed ? 'text-center' : 'pl-12px'
+        )}
+      >
+        v{AGORA_VERSION}
       </div>
     </div>
   );
