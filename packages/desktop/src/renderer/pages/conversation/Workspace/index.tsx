@@ -170,11 +170,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const isTemporaryWorkspace = isTemporaryWorkspaceProp ?? false;
   void rootName; // reserved for future UI hints; no longer used for detection.
 
-  // Get workspace display name using shared utility
-  const workspaceDisplayName = useMemo(
-    () => getDisplayName(workspace, isTemporaryWorkspace, t),
-    [workspace, isTemporaryWorkspace, t]
-  );
+  // Get workspace display name using shared utility.
+  // ponytail: a chat can stay flagged temporary even after a real folder is
+  // opened into it (the backend doesn't clear the temp flag on open). When that
+  // folder has actually loaded, prefer its name over the generic "Temporary
+  // Space". Real fix is backend-side (clear the flag on open); upgrade there.
+  const workspaceDisplayName = useMemo(() => {
+    if (isTemporaryWorkspace && hasOriginalFiles && workspace) {
+      return getDisplayName(workspace, false, t);
+    }
+    return getDisplayName(workspace, isTemporaryWorkspace, t);
+  }, [workspace, isTemporaryWorkspace, hasOriginalFiles, t]);
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
