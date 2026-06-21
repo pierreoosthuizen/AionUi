@@ -7,7 +7,7 @@
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { Down, Plus, Refresh, Search } from '@icon-park/react';
+import { Down, Plus, PreviewClose, PreviewOpen, Refresh, Search } from '@icon-park/react';
 import React from 'react';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import type { TFunction } from 'i18next';
@@ -27,6 +27,9 @@ type WorkspaceToolbarProps = {
   // Tree state
   loading: boolean;
   refreshWorkspace: () => void;
+  // Hidden files
+  includeHidden: boolean;
+  setIncludeHidden: (v: boolean) => void;
   // Upload
   handleSelectHostFiles: () => void;
   handleUploadDeviceFiles: () => void;
@@ -46,6 +49,8 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
   searchInputRef,
   loading,
   refreshWorkspace,
+  includeHidden,
+  setIncludeHidden,
   handleSelectHostFiles,
   handleUploadDeviceFiles,
   setShowHostFileSelector,
@@ -121,6 +126,29 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
               </span>
             </Dropdown>
           )}
+          <Tooltip
+            content={includeHidden ? t('conversation.workspace.hideHidden') : t('conversation.workspace.showHidden')}
+          >
+            <span>
+              {includeHidden ? (
+                <PreviewOpen
+                  className='workspace-toolbar-icon-btn flex cursor-pointer'
+                  theme='outline'
+                  size='16'
+                  fill={iconColors.secondary}
+                  onClick={() => setIncludeHidden(false)}
+                />
+              ) : (
+                <PreviewClose
+                  className='workspace-toolbar-icon-btn flex cursor-pointer'
+                  theme='outline'
+                  size='16'
+                  fill={iconColors.secondary}
+                  onClick={() => setIncludeHidden(true)}
+                />
+              )}
+            </span>
+          </Tooltip>
           <Tooltip content={t('conversation.workspace.refresh')}>
             <span>
               <Refresh

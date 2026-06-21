@@ -289,6 +289,8 @@
     "search.empty": "The search result is empty",
     "addFile": "Add File",
     "refresh": "Refresh",
+    "showHidden": "Show hidden files",
+    "hideHidden": "Hide hidden files",
     "temporarySpace": "Temporary Space",
     "dragOverlayTitle": "Drop to import",
     "dragOverlayDesc": "Drag files or folders here to copy them into this project.",

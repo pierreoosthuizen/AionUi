@@ -44,7 +44,7 @@ export function useLoadedSkills(workspace?: string): string[] {
     const projectScan = workspace ? scanNames(`${workspace}/.claude/skills`) : Promise.resolve<string[]>([]);
     void Promise.all([userScan, projectScan]).then(([user, project]) => {
       if (!alive) return;
-      setSkills(Array.from(new Set([...project, ...user])).sort());
+      setSkills(Array.from(new Set([...project, ...user])).toSorted());
     });
     return () => {
       alive = false;

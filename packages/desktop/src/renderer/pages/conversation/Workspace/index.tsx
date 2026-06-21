@@ -43,6 +43,14 @@ import {
 } from './utils/treeHelpers';
 import './workspace.css';
 
+/** Recursively drop dotfiles/dotdirs unless hidden files are included. View-only filter. */
+const filterHiddenNodes = (nodes: IDirOrFile[], includeHidden: boolean): IDirOrFile[] => {
+  if (includeHidden) return nodes;
+  return nodes
+    .filter((n) => !n.name.startsWith('.'))
+    .map((n) => (n.children ? { ...n, children: filterHiddenNodes(n.children, includeHidden) } : n));
+};
+
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
@@ -62,6 +70,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
+  const [includeHidden, setIncludeHidden] = useState(false);
   const fileChangesHook = useFileChanges({ workspace });
 
   // Bind workspace uploads to the conversation lifecycle: switching the
@@ -142,7 +151,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const rootName = treeHook.files[0]?.name ?? '';
 
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData = flattenSingleRoot(treeHook.files);
+  const treeData = flattenSingleRoot(filterHiddenNodes(treeHook.files, includeHidden));
 
   // Authoritative source: `conversation.extra.is_temporary_workspace` is
   // derived by the backend on every response (see
@@ -298,6 +307,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             searchInputRef={searchHook.searchInputRef}
             loading={treeHook.loading}
             refreshWorkspace={treeHook.refreshWorkspace}
+            includeHidden={includeHidden}
+            setIncludeHidden={setIncludeHidden}
             handleSelectHostFiles={pasteHook.handleSelectHostFiles}
             handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
             setShowHostFileSelector={searchHook.setShowHostFileSelector}
