@@ -138,7 +138,10 @@ const makeDeferred = () => {
   return { promise, resolve, reject };
 };
 
-describe('updateBridge CDN URL rewriting', () => {
+// Disabled: Agora is a detached personal fork — update.check is short-circuited
+// to never query the upstream repo, so it no longer returns release assets.
+// Re-enable alongside the updateBridge logic if upstream updates are restored.
+describe.skip('updateBridge CDN URL rewriting', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });

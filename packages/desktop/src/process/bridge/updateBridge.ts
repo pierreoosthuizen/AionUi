@@ -552,56 +552,12 @@ export function createAutoUpdateStatusBroadcast(): (
 
 export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(
-    async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
-      try {
-        const repo = resolveRepo(params?.repo);
-        const includePrerelease = Boolean(params?.includePrerelease);
-        const currentVersion = app.getVersion();
-
-        // EN: Versioning note
-        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
-        // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
-        // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
-        // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
-        //
-        // 中文：版本号说明
-        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
-        // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
-        // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
-        // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
-
-        const releases = await fetchGitHubReleases(repo);
-        const candidates = releases
-          .filter((r) => r && !r.draft)
-          .filter((r) => (includePrerelease ? true : !r.prerelease))
-          .map(mapRelease)
-          .filter((r): r is UpdateReleaseInfo => Boolean(r));
-
-        const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
-        if (!currentSemver) {
-          return { success: true, data: { currentVersion, updateAvailable: false } };
-        }
-
-        const latest = candidates
-          .filter((r) => semver.valid(r.version))
-          .toSorted((a, b) => semver.rcompare(a.version, b.version))[0];
-
-        if (!latest) {
-          return { success: true, data: { currentVersion, updateAvailable: false } };
-        }
-
-        const updateAvailable = semver.gt(latest.version, currentSemver);
-        return {
-          success: true,
-          data: {
-            currentVersion,
-            updateAvailable,
-            latest,
-          },
-        };
-      } catch (err: unknown) {
-        return { success: false, msg: err instanceof Error ? err.message : String(err) };
-      }
+    // ponytail: Agora is a detached personal fork — never auto-update from the
+    // upstream iOfficeAI/AionUi repo. Always report "no update" without any
+    // network call so a stray upstream release can't overwrite Pierre's build.
+    // Restore the semver/GitHub-release logic (git history) to re-enable updates.
+    async (): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
+      return { success: true, data: { currentVersion: app.getVersion(), updateAvailable: false } };
     }
   );
 
