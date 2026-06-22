@@ -124,12 +124,32 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     platform: 'custom',
     base_url: 'https://api.novita.ai/openai/v1',
   },
+  // Local Ollama — OpenAI-compatible server on the loopback. No API key needed
+  // (Ollama ignores the Authorization header); enter any placeholder if the
+  // form asks. localhost is whitelisted in protocolDetector.
+  {
+    name: 'Ollama (Local)',
+    value: 'Ollama',
+    logo: null,
+    platform: 'custom',
+    base_url: 'http://localhost:11434/v1',
+  },
   {
     name: 'OpenRouter',
     value: 'OpenRouter',
     logo: buildLogoAssetUrl('ai-cloud/openrouter.svg'),
     platform: 'custom',
     base_url: 'https://openrouter.ai/api/v1',
+  },
+  // Perplexity Sonar — OpenAI-compatible. No /models listing endpoint, so type
+  // model IDs manually (the model Select allows free-create): sonar, sonar-pro,
+  // sonar-reasoning, sonar-reasoning-pro, sonar-deep-research.
+  {
+    name: 'Perplexity',
+    value: 'Perplexity',
+    logo: null,
+    platform: 'custom',
+    base_url: 'https://api.perplexity.ai',
   },
   {
     name: 'Dashscope',
