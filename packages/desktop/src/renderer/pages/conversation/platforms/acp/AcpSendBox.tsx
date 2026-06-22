@@ -713,7 +713,7 @@ Please check your local CLI tool authentication status`,
               })
         }
         onStop={effectiveHandleStop}
-        className='z-10'
+        className='z-10 mt-16px mb-12px'
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         enableBtw={isSideQuestionSupported({ type: 'acp', backend })}
