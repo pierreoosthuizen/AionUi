@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
-import { CronJobManager } from '@/renderer/pages/cron';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
@@ -38,12 +37,6 @@ import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConver
 import { autoAssignPeerGroup } from '../GroupedHistory/hooks/useGroups';
 import { getConversationGroupId } from '../GroupedHistory/utils/groupingHelpers';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
-
-/** Check whether a specific skill is mounted on the conversation. */
-const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
-  return skills?.includes(skillName) ?? false;
-};
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -210,11 +203,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
-        <CronJobManager
-          conversation_id={conversation.id}
-          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
-        />
         {!isMobile && (
           <AionrsModelSelector
             selection={modelSelection}
@@ -380,15 +368,6 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
-      {conversation && (
-        <div className='shrink-0'>
-          <CronJobManager
-            conversation_id={conversation.id}
-            cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-            hasCronSkill={hasLoadedSkill(conversation, 'cron')}
-          />
-        </div>
-      )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
     </div>
   );

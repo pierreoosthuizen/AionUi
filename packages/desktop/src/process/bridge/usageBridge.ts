@@ -26,9 +26,18 @@ import type { PlanUsage, PlanUsageWindow } from '@/common/adapter/ipcBridge';
 
 const USAGE_URL = 'https://api.anthropic.com/api/oauth/usage';
 const KEYCHAIN_SERVICE = 'Claude Code-credentials';
-const CACHE_TTL_MS = 60_000;
+// ponytail: the OAuth usage endpoint is steeply rate-limited — polling it every
+// few minutes 429s, then every later call fails too. Throttle by NEXT-ATTEMPT
+// time (not by last-success), so a 429 backs us off for the full window instead
+// of letting every sidebar/recorder poll keep the rate-limit hot — that was the
+// bug: caching only successes meant persistent 429s never stopped hammering, so
+// the window never cooled and usage stayed null forever. Carry forward the last
+// good value across failures. Weekly/session % move slowly, so 10-min staleness
+// costs nothing. Lower the TTL only if Anthropic raises the limit.
+const CACHE_TTL_MS = 10 * 60_000;
 
-let cache: { at: number; value: PlanUsage | null } | null = null;
+let lastGood: PlanUsage | null = null; // last SUCCESSFUL read, carried forward
+let nextAttemptAt = 0; // don't touch the endpoint again before this (epoch ms)
 
 /** Map the OAuth usage payload to our window shape. Pure — unit-tested. */
 export function parsePlanUsage(raw: unknown): PlanUsage {
@@ -65,9 +74,12 @@ function readKeychainToken(): Promise<string | null> {
   });
 }
 
-async function fetchPlanUsage(): Promise<PlanUsage | null> {
+export async function fetchPlanUsage(): Promise<PlanUsage | null> {
+  const now = Date.now();
+  if (now < nextAttemptAt) return lastGood; // backed off — don't poke the endpoint
+  nextAttemptAt = now + CACHE_TTL_MS; // throttle the NEXT call regardless of outcome
   const token = await readKeychainToken();
-  if (!token) return null;
+  if (!token) return lastGood;
   try {
     const res = await fetch(USAGE_URL, {
       headers: {
@@ -76,19 +88,16 @@ async function fetchPlanUsage(): Promise<PlanUsage | null> {
         'anthropic-version': '2023-06-01',
       },
     });
-    if (!res.ok) return null;
-    return parsePlanUsage(await res.json());
+    if (!res.ok) return lastGood; // 429/401 → carry forward last good, stay backed off
+    lastGood = parsePlanUsage(await res.json());
+    return lastGood;
   } catch {
-    return null; // offline / endpoint change — sidebar just hides
+    return lastGood; // offline / endpoint change → last good, else null
   }
 }
 
 export function initUsageBridge(): void {
-  ipcBridge.usage.getPlanUsage.provider(async () => {
-    const now = Date.now();
-    if (cache && now - cache.at < CACHE_TTL_MS) return cache.value;
-    const value = await fetchPlanUsage();
-    cache = { at: now, value };
-    return value;
-  });
+  // Cache lives inside fetchPlanUsage now (shared across all callers) — provider
+  // is a thin passthrough.
+  ipcBridge.usage.getPlanUsage.provider(() => fetchPlanUsage());
 }

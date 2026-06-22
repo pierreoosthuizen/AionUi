@@ -74,6 +74,15 @@
     "save": "Save",
     "cancel": "Cancel",
     "form": {
+      "targetType": "Run with",
+      "targetAgent": "Agent",
+      "targetPeer": "Peer",
+      "targetAgentHint": "Run this task with a CLI agent or preset assistant.",
+      "targetPeerHint": "Push the prompt into an active peer's current chat. If the peer isn't running when it fires, it's skipped silently.",
+      "peer": "Peer",
+      "peerRequired": "Please select a peer",
+      "peerPlaceholder": "Select an active peer to run this task",
+      "peerNone": "No active peers",
       "name": "Name",
       "nameRequired": "Name is required",
       "namePlaceholder": "Enter task name",
@@ -121,6 +130,17 @@
       "dailyAt": "Every day at {{time}}",
       "weekdaysAt": "Weekdays at {{time}}",
       "weeklyAt": "Every {{day}} at {{time}}"
+    },
+    "badge": {
+      "agent": "Agent",
+      "peer": "Peer"
+    },
+    "peer": {
+      "runNow": "Run now",
+      "runSent": "Prompt sent to peer",
+      "runSkipped": "Peer not active — skipped",
+      "runError": "Failed to send to peer",
+      "deleteConfirm": "Delete this peer task?"
     }
   },
   "trigger": {

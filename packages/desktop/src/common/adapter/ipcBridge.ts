@@ -1366,6 +1366,64 @@ export interface ICreateCronJobParams {
 }
 
 // ---------------------------------------------------------------------------
+// Peer-targeted scheduled tasks (ADR-0002) — native main-process scheduler.
+// A separate track from aioncore cron: fires by pushing the prompt into an
+// active claude-peers peer's current conversation; silent-skip if not active.
+// ---------------------------------------------------------------------------
+
+export type PeerFrequency = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly';
+
+/** A live, managed (chat-backed) peer eligible as a task target. */
+export interface IActivePeer {
+  managed_key: string;
+  peer_name: string | null;
+  cwd: string;
+}
+
+export interface IPeerTask {
+  id: string;
+  name: string;
+  description?: string;
+  prompt: string;
+  /** Stable bind key = aioncore conversation id; resolved to a live peer id at fire time. */
+  managed_key: string;
+  /** Snapshot of peer_name + cwd at create time, for list display. */
+  peer_label: string;
+  frequency: PeerFrequency;
+  /** "HH:mm" for daily/weekdays/weekly. */
+  time?: string;
+  /** 'MON'..'SUN' for weekly. */
+  weekday?: string;
+  enabled: boolean;
+  next_run_at_ms?: number;
+  last_run_at_ms?: number;
+  last_status?: 'sent' | 'skipped' | 'error';
+  last_error?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ICreatePeerTaskParams {
+  name: string;
+  description?: string;
+  prompt: string;
+  managed_key: string;
+  peer_label: string;
+  frequency: PeerFrequency;
+  time?: string;
+  weekday?: string;
+}
+
+export const peerTask = {
+  list: bridge.buildProvider<IPeerTask[], void>('peer-task:list'),
+  add: bridge.buildProvider<IPeerTask, ICreatePeerTaskParams>('peer-task:add'),
+  update: bridge.buildProvider<IPeerTask, { id: string; updates: Partial<IPeerTask> }>('peer-task:update'),
+  remove: bridge.buildProvider<void, { id: string }>('peer-task:remove'),
+  runNow: bridge.buildProvider<{ status: 'sent' | 'skipped' | 'error'; error?: string }, { id: string }>('peer-task:run-now'),
+  listActivePeers: bridge.buildProvider<IActivePeer[], void>('peer-task:list-active-peers'),
+};
+
+// ---------------------------------------------------------------------------
 // Shared types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 

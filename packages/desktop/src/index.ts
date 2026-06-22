@@ -284,6 +284,20 @@ const scheduleBackendMigrations = (): void => {
     } catch (error) {
       console.error('[AionUi] startPeerAutoPickup hook threw:', error);
     }
+    try {
+      // Snapshot plan usage + peer activity into userData/metrics.db every 5 min.
+      const { startMetricsRecorder } = await import('./process/services/metricsRecorder');
+      startMetricsRecorder();
+    } catch (error) {
+      console.error('[AionUi] startMetricsRecorder hook threw:', error);
+    }
+    try {
+      // Fire peer-targeted scheduled tasks into active peer chats (ADR-0002).
+      const { startPeerTaskScheduler } = await import('./process/services/peerTaskScheduler');
+      startPeerTaskScheduler();
+    } catch (error) {
+      console.error('[AionUi] startPeerTaskScheduler hook threw:', error);
+    }
   })();
 };
 

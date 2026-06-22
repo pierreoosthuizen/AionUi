@@ -15,6 +15,7 @@ import { initThemeBridge } from './themeBridge';
 import { initShellBridge } from './shellBridge';
 import { initGitBridge } from './gitBridge';
 import { initUsageBridge } from './usageBridge';
+import { initPeerTaskBridge } from './peerTaskBridge';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -30,6 +31,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initShellBridge();
   initGitBridge();
   initUsageBridge();
+  initPeerTaskBridge();
 }
 
 export {
@@ -44,6 +46,7 @@ export {
   initShellBridge,
   initGitBridge,
   initUsageBridge,
+  initPeerTaskBridge,
 };
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
 export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();

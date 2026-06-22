@@ -11,7 +11,7 @@ import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-d
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
+import type { IActivePeer, ICreateCronJobParams, ICronAgentConfig, ICronJob, IPeerTask } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
@@ -36,8 +36,10 @@ const OptGroup = Select.OptGroup;
 interface CreateTaskDialogProps {
   visible: boolean;
   onClose: () => void;
-  /** When provided, the dialog operates in edit mode */
+  /** When provided, the dialog operates in edit mode (agent/cron task) */
   editJob?: ICronJob;
+  /** When provided, the dialog operates in edit mode for a peer-targeted task */
+  editPeerTask?: IPeerTask;
   conversation_id?: string;
   conversation_title?: string;
   agent_type?: string;
@@ -45,6 +47,13 @@ interface CreateTaskDialogProps {
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
 type ExecutionMode = 'new_conversation' | 'existing';
+type TargetType = 'agent' | 'peer';
+
+/** "name — folder" label for a peer target; cwd basename disambiguates same-named peers. */
+function peerLabel(peer: Pick<IActivePeer, 'peer_name' | 'cwd'>): string {
+  const folder = peer.cwd.split('/').filter(Boolean).pop() ?? peer.cwd;
+  return `${peer.peer_name ?? 'peer'} — ${folder}`;
+}
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -137,6 +146,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   visible,
   onClose,
   editJob,
+  editPeerTask,
   conversation_id: _conversation_id,
   conversation_title,
   agent_type,
@@ -150,8 +160,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
   const [customCronExpr, setCustomCronExpr] = useState<string>('');
+  const [targetType, setTargetType] = useState<TargetType>('peer');
 
-  const isEditMode = !!editJob;
+  // Live, managed peers eligible as task targets — refetched while the dialog is open.
+  const { data: activePeers = [] } = useSWR<IActivePeer[]>(visible && targetType === 'peer' ? 'peer-task:active-peers' : null, () => ipcBridge.peerTask.listActivePeers.invoke());
+
+  const isEditMode = !!editJob || !!editPeerTask;
   const [execution_mode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -167,7 +181,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // Populate form when entering edit mode
   useEffect(() => {
     if (!visible) return;
-    if (editJob) {
+    if (editPeerTask) {
+      setTargetType('peer');
+      setFrequency(editPeerTask.frequency);
+      setTime(editPeerTask.time ?? '09:00');
+      setWeekday(editPeerTask.weekday ?? 'MON');
+      form.setFieldsValue({
+        name: editPeerTask.name,
+        description: editPeerTask.description ?? '',
+        prompt: editPeerTask.prompt,
+        peer: editPeerTask.managed_key,
+      });
+    } else if (editJob) {
+      setTargetType('agent'); // editing an existing agent cron task
       const cronExpr = editJob.schedule.kind === 'cron' ? editJob.schedule.expr : '';
       const parsed = parseCronExpr(cronExpr);
       setFrequency(parsed.frequency);
@@ -197,6 +223,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWorkspace(editJob.metadata.agent_config?.workspace);
     } else {
       form.resetFields();
+      setTargetType('peer'); // peer is the default target for new tasks
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
@@ -208,7 +235,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWorkspace(undefined);
       setSelectedAgent(undefined);
     }
-  }, [visible, editJob, form]);
+  }, [visible, editJob, editPeerTask, form]);
 
   // Resolve backend from selectedAgent (handles both CLI and preset agents)
   const resolvedBackend = useMemo(() => {
@@ -374,6 +401,30 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const values = await form.validate();
       setSubmitting(true);
 
+      if (targetType === 'peer') {
+        const peer = activePeers.find((p) => p.managed_key === values.peer);
+        const label = peer ? peerLabel(peer) : (editPeerTask?.peer_label ?? values.peer);
+        const fields = {
+          name: values.name,
+          description: values.description,
+          prompt: values.prompt,
+          managed_key: values.peer as string,
+          peer_label: label,
+          frequency: frequency as IPeerTask['frequency'],
+          time: showTimePicker ? time : undefined,
+          weekday: showWeekdayPicker ? weekday : undefined,
+        };
+        if (editPeerTask) {
+          await ipcBridge.peerTask.update.invoke({ id: editPeerTask.id, updates: fields });
+          Message.success(t('cron.page.updateSuccess'));
+        } else {
+          await ipcBridge.peerTask.add.invoke(fields);
+          Message.success(t('cron.page.createSuccess'));
+        }
+        onClose();
+        return;
+      }
+
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
@@ -458,6 +509,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     >
       <div className='overflow-y-auto px-24px pb-16px pr-18px max-h-[min(68vh,640px)]'>
         <Form form={form} layout='vertical'>
+          <FormItem label={t('cron.page.form.targetType')}>
+            <Radio.Group
+              type='button'
+              value={targetType}
+              onChange={(value) => setTargetType(value as TargetType)}
+              disabled={isEditMode}
+            >
+              <Radio value='peer'>{t('cron.page.form.targetPeer')}</Radio>
+              <Radio value='agent'>{t('cron.page.form.targetAgent')}</Radio>
+            </Radio.Group>
+            <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
+              {targetType === 'peer' ? t('cron.page.form.targetPeerHint') : t('cron.page.form.targetAgentHint')}
+            </p>
+          </FormItem>
+
           <FormItem
             label={t('cron.page.form.name')}
             field='name'
@@ -474,6 +540,23 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             <Input placeholder={t('cron.page.form.descriptionPlaceholder')} />
           </FormItem>
 
+          {targetType === 'peer' && (
+            <FormItem
+              label={t('cron.page.form.peer')}
+              field='peer'
+              rules={[{ required: true, message: t('cron.page.form.peerRequired') }]}
+            >
+              <Select placeholder={t('cron.page.form.peerPlaceholder')} notFoundContent={t('cron.page.form.peerNone')}>
+                {activePeers.map((peer) => (
+                  <Option key={peer.managed_key} value={peer.managed_key}>
+                    {peerLabel(peer)}
+                  </Option>
+                ))}
+              </Select>
+            </FormItem>
+          )}
+
+          {targetType === 'agent' && (
           <FormItem
             label={t('cron.page.form.agent')}
             field='agent'
@@ -574,7 +657,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               )}
             </Select>
           </FormItem>
+          )}
 
+          {targetType === 'agent' && (
           <FormItem label={t('cron.page.form.executionMode')}>
             <Radio.Group
               value={execution_mode}
@@ -597,6 +682,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
             </div>
           </FormItem>
+          )}
 
           <FormItem
             label={t('cron.page.form.prompt')}
@@ -653,6 +739,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </div>
           )}
 
+          {targetType === 'agent' && (
           <div className='mt-16px'>
             <Button
               type='text'
@@ -709,6 +796,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               </div>
             )}
           </div>
+          )}
         </Form>
       </div>
     </ModalWrapper>

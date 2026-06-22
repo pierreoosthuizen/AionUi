@@ -6,18 +6,41 @@
 
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
+import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
+import { Button, Switch, Message, Empty, Spin, Tooltip, Popconfirm, Tag } from '@arco-design/web-react';
+import { Delete, PlayOne } from '@icon-park/react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
-import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
+import { ipcBridge } from '@/common';
+import { systemSettings, type ICronJob, type IPeerTask } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+
+const WEEKDAY_KEY: Record<string, string> = { MON: 'monday', TUE: 'tuesday', WED: 'wednesday', THU: 'thursday', FRI: 'friday', SAT: 'saturday', SUN: 'sunday' };
+
+/** Human schedule line for a peer task — plain frequency, no cron expr (ADR-0002 §5). */
+function formatPeerSchedule(task: IPeerTask, t: (k: string, o?: Record<string, unknown>) => string): string {
+  switch (task.frequency) {
+    case 'manual':
+      return t('cron.page.scheduleDesc.manual');
+    case 'hourly':
+      return t('cron.page.scheduleDesc.hourly');
+    case 'daily':
+      return t('cron.page.scheduleDesc.dailyAt', { time: task.time ?? '09:00' });
+    case 'weekdays':
+      return t('cron.page.scheduleDesc.weekdaysAt', { time: task.time ?? '09:00' });
+    case 'weekly':
+      return t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${WEEKDAY_KEY[task.weekday ?? 'MON']}`), time: task.time ?? '09:00' });
+    default:
+      return '';
+  }
+}
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
@@ -26,8 +49,61 @@ const ScheduledTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const [createDialogVisible, setCreateDialogVisible] = useState(false);
+  const { data: peerTasks = [], mutate: refetchPeerTasks } = useSWR<IPeerTask[]>('peer-task:list', () => ipcBridge.peerTask.list.invoke());
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingPeerTask, setEditingPeerTask] = useState<IPeerTask | undefined>(undefined);
   const [keepAwake, setKeepAwake] = useState(false);
+
+  const openCreate = useCallback(() => {
+    setEditingPeerTask(undefined);
+    setDialogOpen(true);
+  }, []);
+
+  const closeDialog = useCallback(() => {
+    setDialogOpen(false);
+    setEditingPeerTask(undefined);
+    void refetchPeerTasks();
+  }, [refetchPeerTasks]);
+
+  const handleEditPeer = useCallback((task: IPeerTask) => {
+    setEditingPeerTask(task);
+    setDialogOpen(true);
+  }, []);
+
+  const handleTogglePeer = useCallback(
+    async (task: IPeerTask) => {
+      try {
+        await ipcBridge.peerTask.update.invoke({ id: task.id, updates: { enabled: !task.enabled } });
+        void refetchPeerTasks();
+      } catch (err) {
+        Message.error(String(err));
+      }
+    },
+    [refetchPeerTasks]
+  );
+
+  const handleDeletePeer = useCallback(
+    async (task: IPeerTask) => {
+      try {
+        await ipcBridge.peerTask.remove.invoke({ id: task.id });
+        void refetchPeerTasks();
+      } catch (err) {
+        Message.error(String(err));
+      }
+    },
+    [refetchPeerTasks]
+  );
+
+  const handleRunPeerNow = useCallback(async (task: IPeerTask) => {
+    try {
+      const result = await ipcBridge.peerTask.runNow.invoke({ id: task.id });
+      if (result.status === 'sent') Message.success(t('cron.page.peer.runSent'));
+      else if (result.status === 'skipped') Message.warning(t('cron.page.peer.runSkipped'));
+      else Message.error(result.error || t('cron.page.peer.runError'));
+    } catch (err) {
+      Message.error(String(err));
+    }
+  }, [t]);
 
   useEffect(() => {
     setKeepAwake(configService.get('system.keepAwake') ?? false);
@@ -92,7 +168,7 @@ const ScheduledTasksPage: React.FC = () => {
             >
               {t('cron.scheduledTasks')}
             </h1>
-            <Button type='primary' shape='round' className='shrink-0' onClick={() => setCreateDialogVisible(true)}>
+            <Button type='primary' shape='round' className='shrink-0' onClick={openCreate}>
               {t('cron.page.newTask')}
             </Button>
           </div>
@@ -129,7 +205,7 @@ const ScheduledTasksPage: React.FC = () => {
           <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
             <Spin />
           </div>
-        ) : jobs.length === 0 ? (
+        ) : jobs.length === 0 && peerTasks.length === 0 ? (
           <div className='flex min-h-220px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>
             <Empty description={t('cron.noTasks')} />
           </div>
@@ -166,6 +242,9 @@ const ScheduledTasksPage: React.FC = () => {
                     >
                       {job.name}
                     </span>
+                    <Tag size='small' color='arcoblue'>
+                      {t('cron.page.badge.agent')}
+                    </Tag>
                     <CronStatusTag job={job} />
                   </div>
 
@@ -219,10 +298,65 @@ const ScheduledTasksPage: React.FC = () => {
                 </div>
               );
             })}
+
+            {peerTasks.map((task) => {
+              const nextRun = task.enabled && task.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(task.next_run_at_ms)}` : '-';
+              return (
+                <div
+                  key={task.id}
+                  className={classNames(
+                    'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
+                    isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
+                  )}
+                  onClick={() => handleEditPeer(task)}
+                >
+                  <div className='mb-12px flex items-center justify-between gap-8px'>
+                    <span
+                      className={classNames(
+                        'mr-8px min-w-0 flex-1 font-medium text-t-primary',
+                        isMobile ? 'truncate text-14px leading-20px' : 'truncate text-15px leading-22px'
+                      )}
+                    >
+                      {task.name}
+                    </span>
+                    <Tag size='small' color='purple'>
+                      {t('cron.page.badge.peer')}
+                    </Tag>
+                  </div>
+
+                  <div
+                    className={classNames(
+                      'min-w-0 break-words text-t-secondary',
+                      isMobile ? 'text-13px leading-20px' : 'text-14px leading-22px'
+                    )}
+                  >
+                    {formatPeerSchedule(task, t)}
+                  </div>
+
+                  <div className='mt-16px min-w-0 break-words text-t-secondary text-13px leading-20px'>{nextRun}</div>
+
+                  <div className='mt-14px flex items-center justify-between gap-10px'>
+                    <Tooltip content={task.peer_label}>
+                      <span className='min-w-0 truncate text-12px leading-18px text-t-secondary'>{task.peer_label}</span>
+                    </Tooltip>
+
+                    <div className='flex shrink-0 items-center gap-10px' onClick={(e) => e.stopPropagation()}>
+                      <Tooltip content={t('cron.page.peer.runNow')}>
+                        <PlayOne size='16' className='cursor-pointer text-t-secondary hover:text-t-primary' onClick={() => handleRunPeerNow(task)} />
+                      </Tooltip>
+                      <Popconfirm title={t('cron.page.peer.deleteConfirm')} onOk={() => handleDeletePeer(task)}>
+                        <Delete size='16' className='cursor-pointer text-t-secondary hover:text-red-5' />
+                      </Popconfirm>
+                      {task.frequency !== 'manual' && <Switch size='small' checked={task.enabled} onChange={() => handleTogglePeer(task)} />}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        <CreateTaskDialog visible={createDialogVisible} onClose={() => setCreateDialogVisible(false)} />
+        <CreateTaskDialog visible={dialogOpen} editPeerTask={editingPeerTask} onClose={closeDialog} />
       </div>
     </div>
   );

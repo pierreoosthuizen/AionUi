@@ -14,7 +14,15 @@ import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
  * (Aion CLI / aionrs, OpenClaw) that the backend binary still reports.
  */
 const agent = (over: Partial<AgentMetadata>): AgentMetadata =>
-  ({ id: 'x', name: 'x', agent_type: 'acp', agent_source: 'internal', enabled: true, available: true, ...over }) as AgentMetadata;
+  ({
+    id: 'x',
+    name: 'x',
+    agent_type: 'acp',
+    agent_source: 'internal',
+    enabled: true,
+    available: true,
+    ...over,
+  }) as AgentMetadata;
 
 describe('keepOnlyClaude', () => {
   it('keeps the Claude backend', () => {
