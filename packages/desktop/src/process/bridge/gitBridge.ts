@@ -1,0 +1,93 @@
+/**
+ * @license
+ * Copyright 2026 Plouton Consulting (Pty) Ltd.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/**
+ * Git Bridge — native git for the conversation workspace.
+ *
+ * aioncore detects repos and lists branches but has no checkout/worktree
+ * endpoints, so branch switching and worktree creation run `git` directly in
+ * the main process (mirrors shellBridge). All ops are scoped to one workspace
+ * folder via `git -C`.
+ *
+ * ponytail: shells out to the system `git`. No libgit2 dependency — git is a
+ * hard requirement for this feature anyway, and the surface here is three
+ * commands. Add a dependency only if we outgrow plumbing-via-CLI.
+ */
+
+import { execFile } from 'node:child_process';
+import { ipcBridge } from '@/common';
+import { computeWorktreePath } from '../utils/worktreePath';
+
+function git(workspace: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile('git', ['-C', workspace, ...args], { maxBuffer: 4 * 1024 * 1024 }, (error, stdout, stderr) => {
+      if (error) {
+        reject(new Error((stderr || '').trim() || error.message));
+        return;
+      }
+      resolve(stdout);
+    });
+  });
+}
+
+async function isRepo(workspace: string): Promise<boolean> {
+  try {
+    return (await git(workspace, ['rev-parse', '--is-inside-work-tree'])).trim() === 'true';
+  } catch {
+    return false;
+  }
+}
+
+async function branchExists(workspace: string, branch: string): Promise<boolean> {
+  try {
+    await git(workspace, ['show-ref', '--verify', '--quiet', `refs/heads/${branch}`]);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function initGitBridge(): void {
+  ipcBridge.git.status.provider(async ({ workspace }) => {
+    if (!workspace || !(await isRepo(workspace))) {
+      return { isRepo: false, currentBranch: null, branches: [] };
+    }
+    const currentBranch = (await git(workspace, ['branch', '--show-current'])).trim() || null;
+    const branches = (await git(workspace, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']))
+      .split('\n')
+      .map((b) => b.trim())
+      .filter(Boolean);
+    return { isRepo: true, currentBranch, branches };
+  });
+
+  ipcBridge.git.checkout.provider(async ({ workspace, branch }) => {
+    try {
+      // Refuse to clobber: a dirty tree would silently carry changes across the
+      // switch. Tell the user to commit/stash or spin a worktree instead.
+      const dirty = (await git(workspace, ['status', '--porcelain'])).trim();
+      if (dirty) {
+        return { ok: false, error: 'dirty' };
+      }
+      await git(workspace, ['checkout', branch]);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: 'failed', message: e instanceof Error ? e.message : String(e) };
+    }
+  });
+
+  ipcBridge.git.createWorktree.provider(async ({ workspace, branch, from }) => {
+    try {
+      const path = computeWorktreePath(workspace, branch);
+      const exists = await branchExists(workspace, branch);
+      // Existing branch → attach it; new name → create it off `from` (or HEAD).
+      const args = exists ? ['worktree', 'add', path, branch] : ['worktree', 'add', '-b', branch, path, from || 'HEAD'];
+      await git(workspace, args);
+      return { ok: true, path, branch };
+    } catch (e) {
+      return { ok: false, message: e instanceof Error ? e.message : String(e) };
+    }
+  });
+}

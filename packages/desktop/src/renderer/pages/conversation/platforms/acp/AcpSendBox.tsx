@@ -5,6 +5,7 @@ import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageBar from '@/renderer/components/agent/ContextUsageBar';
+import { WorkspaceGitControls } from '@/renderer/components/workspace-git';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import CommitBar from '@/renderer/components/chat/CommitBar';
 import MobileActionSheet, {
@@ -795,7 +796,10 @@ Please check your local CLI tool authentication status`,
         allowSendWhileLoading
         compactActions={false}
       ></SendBox>
-      <ContextUsageBar conversation_id={conversation_id} />
+      <div className='flex items-center gap-8px mt-8px'>
+        <WorkspaceGitControls conversation_id={conversation_id} workspace={workspacePath} />
+        <ContextUsageBar conversation_id={conversation_id} />
+      </div>
       {isMobile && (
         <>
           <MobileActionSheet

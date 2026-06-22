@@ -136,6 +136,26 @@ export const shell = {
 };
 
 // ---------------------------------------------------------------------------
+// Git — native (Electron main, system `git`) branch + worktree ops for the
+// conversation workspace. aioncore lists branches but can't checkout/worktree.
+// ---------------------------------------------------------------------------
+
+export const git = {
+  status: bridge.buildProvider<
+    { isRepo: boolean; currentBranch: string | null; branches: string[] },
+    { workspace: string }
+  >('git:status'),
+  checkout: bridge.buildProvider<
+    { ok: boolean; error?: 'dirty' | 'failed'; message?: string },
+    { workspace: string; branch: string }
+  >('git:checkout'),
+  createWorktree: bridge.buildProvider<
+    { ok: boolean; path?: string; branch?: string; message?: string },
+    { workspace: string; branch: string; from?: string }
+  >('git:create-worktree'),
+};
+
+// ---------------------------------------------------------------------------
 // Assistants — routed to /api/assistants/*
 // ---------------------------------------------------------------------------
 

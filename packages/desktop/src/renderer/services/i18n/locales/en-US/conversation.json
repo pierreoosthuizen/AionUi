@@ -518,6 +518,16 @@
       "unsupported": "Unsupported"
     }
   },
+  "git": {
+    "createWorktree": "Create worktree",
+    "worktreeBranchPlaceholder": "New branch name",
+    "worktreeHint": "Creates an isolated worktree in a sibling folder and switches this chat to it.",
+    "worktreeSuccess": "Worktree created on {{branch}}",
+    "worktreeFailed": "Failed to create worktree",
+    "checkoutSuccess": "Switched to {{branch}}",
+    "checkoutFailed": "Failed to switch branch",
+    "dirtyTree": "Working tree has uncommitted changes — commit/stash or create a worktree."
+  },
   "runtimePreparing": {
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."
   },
