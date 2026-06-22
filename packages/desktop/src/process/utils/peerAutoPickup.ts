@@ -127,7 +127,11 @@ async function ensureManagedPeer(conversationId: string, workspace: string): Pro
     git_root: null,
     tty: null,
     summary,
-    peer_name: null, // discovered by cwd/summary; avoids colliding with terminal named peers
+    // Name the inbox after its peers.json identity so OTHER peers can address it
+    // by name (ensure_peer/send_message), e.g. pip → forge. Only known workspaces
+    // get a name; ad-hoc conversations stay null (cwd/summary discovery only) to
+    // avoid claiming a symbolic name that isn't theirs.
+    peer_name: name ?? null,
     managed_key: conversationId,
   });
   if (!res?.id) return null;
