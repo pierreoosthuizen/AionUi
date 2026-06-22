@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
+import WorkspaceOpenButton from '@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -52,6 +53,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
   const appTitle = useMemo(() => 'Agora', []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
+  // Current conversation's workspace, so the titlebar can host the always-available
+  // Finder/Terminal/Ghostty/VSCode launcher next to the workspace toggle.
+  const [workspacePath, setWorkspacePath] = useState<string | null>(null);
+  const [isTempWorkspace, setIsTempWorkspace] = useState(false);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
@@ -79,6 +84,36 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       window.removeEventListener(WORKSPACE_STATE_EVENT, handler as EventListener);
     };
   }, []);
+
+  // Resolve the active conversation's workspace path for the launcher button.
+  // Route-driven (same source as the mobile title), so it tracks tab switches.
+  useEffect(() => {
+    const match = location.pathname.match(/^\/conversation\/([^/]+)/);
+    const conversation_id = match?.[1];
+    if (!conversation_id) {
+      setWorkspacePath(null);
+      setIsTempWorkspace(false);
+      return;
+    }
+    let cancelled = false;
+    void ipcBridge.conversation.get
+      .invoke({ id: conversation_id })
+      .then((conversation) => {
+        if (cancelled) return;
+        setWorkspacePath(conversation?.extra?.workspace ?? null);
+        setIsTempWorkspace(
+          Boolean((conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace)
+        );
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setWorkspacePath(null);
+        setIsTempWorkspace(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [location.pathname]);
 
   const isDesktopRuntime = isElectronDesktop();
   const isMacRuntime = isDesktopRuntime && isMacOS();
@@ -332,6 +367,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
+        {/* Always-available workspace launcher (Finder/Terminal/Ghostty/VSCode), next to the panel toggle */}
+        {showWorkspaceButton && workspacePath && (
+          <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={isTempWorkspace} />
+        )}
         {showWorkspaceButton && (
           <button
             type='button'

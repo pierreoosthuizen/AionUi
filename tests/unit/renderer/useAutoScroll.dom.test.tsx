@@ -250,6 +250,41 @@ describe('useAutoScroll', () => {
     expect(result.current.showScrollButton).toBe(true);
   });
 
+  it('keeps following through a layout-shift scroll (e.g. Processing indicator removal)', () => {
+    const scroller = createScroller({ scrollTop: 600 }); // gap 0 — pinned to bottom
+    const content = createContent();
+    const { result } = renderHook(() =>
+      useAutoScroll({
+        messages: [createLeftMessage('hello')],
+        itemCount: 1,
+      })
+    );
+
+    attachElements(result, scroller, content);
+    act(() => {
+      vi.runAllTimers();
+    });
+    vi.mocked(scroller.scrollTo).mockClear();
+
+    // Baseline scroll at the bottom records current dimensions (1000/400).
+    fireScroll(result.current.handleScroll, scroller, 600);
+
+    // Past the programmatic guard, a layout shift shrinks content and bumps the
+    // scroll position up — a scroll event with NO user input but changed height.
+    vi.setSystemTime(new Date('2026-05-26T12:00:00.300Z'));
+    scroller.scrollHeight = 900;
+    fireScroll(result.current.handleScroll, scroller, 480); // gap = 900-400-480 = 20 (>4)
+
+    act(() => {
+      resizeObserverCallback?.([], {} as ResizeObserver);
+      vi.runAllTimers();
+    });
+
+    // Follow stayed engaged → auto-scrolled back to the new bottom (900-400).
+    expect(scroller.scrollTo).toHaveBeenCalledWith({ top: 500, behavior: 'auto' });
+    expect(result.current.showScrollButton).toBe(false);
+  });
+
   it('forces a bottom sync when a new user message is appended', () => {
     const scroller = createScroller();
     const content = createContent();

@@ -53,6 +53,11 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
 
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  // Dimensions at the last scroll event — used to tell a real user scroll (size
+  // unchanged) from a layout-shift-induced scroll (size changed), e.g. the
+  // "Processing…" indicator unmounting or a thinking row collapsing.
+  const lastScrollHeightRef = useRef(0);
+  const lastClientHeightRef = useRef(0);
   const previousListLengthRef = useRef(messages.length);
   const lastProgrammaticScrollTimeRef = useRef(0);
   const initialScrollDoneRef = useRef(false);
@@ -143,11 +148,17 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
       const delta = currentScrollTop - lastScrollTopRef.current;
       const bottomGap = getBottomGap(target);
       const pinnedToBottom = bottomGap <= FOLLOW_BOTTOM_THRESHOLD_PX;
+      // A scroll event whose scrollHeight/clientHeight differ from the previous
+      // event was caused by a layout change, not the user. Real wheel/pointer
+      // input still disengages follow (so scroll-up mid-stream works); the
+      // no-input fallback only fires when the layout is stable.
+      const layoutChanged =
+        target.scrollHeight !== lastScrollHeightRef.current || target.clientHeight !== lastClientHeightRef.current;
 
       if (
         !pinnedToBottom &&
         Math.abs(delta) > 2 &&
-        (userInputActiveRef.current || timeSinceGuard >= PROGRAMMATIC_SCROLL_GUARD_MS)
+        (userInputActiveRef.current || (timeSinceGuard >= PROGRAMMATIC_SCROLL_GUARD_MS && !layoutChanged))
       ) {
         userScrolledRef.current = true;
       }
@@ -159,6 +170,8 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
       }
 
       lastScrollTopRef.current = currentScrollTop;
+      lastScrollHeightRef.current = target.scrollHeight;
+      lastClientHeightRef.current = target.clientHeight;
       updateBottomState(target);
     },
     [updateBottomState]
