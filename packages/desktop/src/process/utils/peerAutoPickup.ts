@@ -5,38 +5,40 @@
  */
 
 /**
- * Peer auto-pickup — surface inbound claude-peers channel messages without a nudge.
+ * Peer presence + auto-pickup for Agora conversations.
  *
- * Agora's embedded agent runs the claude binary in headless/ACP mode. Its
- * claude-peers MCP child (server.ts) emits `notifications/claude/channel` on an
- * inbound message, but headless claude ignores it while idle (no interactive loop
- * to start a turn from). So a peer message only surfaces when the user manually
- * runs check_messages inside a turn.
+ * Problem this solves: Agora's embedded agent runs claude in headless/ACP mode,
+ * and the claude-peers MCP child (server.ts) that registers a peer is respawned
+ * PER TURN under a fresh, churning peer id. Between turns no server.ts exists, so
+ * the conversation has NO broker presence — other peers can't find it, and any
+ * message sent to a dead turn-id is purged when that pid dies. Net effect: Agora
+ * peers "time out" and silently drop messages.
  *
- * This watcher closes that gap from the app layer: it polls the broker's read-only
- * /peek-messages for each open conversation's peer and, on a new inbound, injects a
- * turn through aioncore's normal send-message API — the same path a typed message
- * uses — wrapped in the <channel source="claude-peers"> envelope the agent's system
- * prompt already knows to answer. The agent replies in real time, zero nudge.
+ * Fix (this module, runs in the long-lived Electron main process): maintain ONE
+ * durable "inbox" peer per open conversation, registered with the main process's
+ * pid and a stable managed_key (the conversation id). It lives as long as Agora
+ * is open — independent of turns — so the conversation is always discoverable and
+ * messages addressed to it are never purged mid-flight. On each tick we peek that
+ * peer's inbox and inject any new inbound as a turn through aioncore's normal
+ * send-message API, wrapped in the <channel source="claude-peers"> envelope the
+ * agent's system prompt already knows to answer.
  *
- * ponytail: peek is detect-only (never consumes); de-dupe is an in-process Set of
- * broker message ids. We do NOT mark delivered — the broker purges a peer's
- * undelivered rows when it dies (conversation close / app quit), and ids are
- * globally monotonic, so a fresh session never re-injects an old message. The only
- * residue: a manual check_messages could re-show an auto-picked message until the
- * peer dies. Acceptable for a personal build; mark-delivered via /poll-messages if
- * that ever bites. cwd→conversation maps by workspace; two conversations in one
- * workspace share a peer — we inject into the most recently active match.
+ * ponytail: register-once per conversation (no per-tick re-register storm) — the
+ * broker has no time-based eviction, so a managed row persists until its conv
+ * closes (we /unregister it) or Agora quits (main pid dies → broker reaps all).
+ * Known limit: the agent's OUTBOUND send_message still uses its turn-scoped
+ * server.ts id, so a direct reply to that id can be lost after the turn — inbound
+ * is fully durable, outbound reply-routing is a separate follow-up.
  */
+
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { basename, join } from 'node:path';
 
 const BROKER_URL = `http://127.0.0.1:${process.env.CLAUDE_PEERS_PORT ?? '7899'}`;
 const POLL_INTERVAL_MS = 2000;
+const PEERS_JSON = join(homedir(), '.claude', 'peers', 'peers.json');
 
-interface BrokerPeer {
-  id: string;
-  cwd: string;
-  last_seen?: string;
-}
 interface BrokerMessage {
   id: number;
   from_id: string;
@@ -50,7 +52,28 @@ interface ApiConversation {
 }
 
 const injected = new Set<number>();
+/** conversationId → durable broker peer id for that conversation's inbox. */
+const managed = new Map<string, string>();
 let timer: ReturnType<typeof setInterval> | null = null;
+
+/** workspace path → peers.json session_name, read once (peers.json is static at runtime). */
+let workspaceToName: Map<string, string> | null = null;
+function nameForWorkspace(ws: string): string | undefined {
+  if (!workspaceToName) {
+    workspaceToName = new Map();
+    try {
+      const data = JSON.parse(readFileSync(PEERS_JSON, 'utf-8')) as {
+        peers?: Array<{ session_name: string; workspace?: string }>;
+      };
+      for (const p of data.peers ?? []) {
+        if (p.workspace) workspaceToName.set(p.workspace, p.session_name);
+      }
+    } catch {
+      /* no peers.json — labels fall back to the workspace basename */
+    }
+  }
+  return workspaceToName.get(ws);
+}
 
 function backendPort(): number | undefined {
   return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
@@ -70,39 +93,46 @@ async function brokerPost<T>(path: string, body: unknown): Promise<T | null> {
   }
 }
 
-/**
- * Most-recent peer per cwd (alive — /list-peers already filters dead pids).
- * Re-resolved every tick on purpose: each ACP turn respawns the conversation's
- * claude→server.ts under a NEW peer id (turn-scoped transport), so we address by
- * the stable cwd and never pin a churning id.
- */
-async function peersByCwd(): Promise<Map<string, string>> {
-  const peers = await brokerPost<BrokerPeer[]>('/list-peers', { scope: 'machine', cwd: '', git_root: null });
-  const map = new Map<string, string>();
-  if (!Array.isArray(peers)) return map;
-  for (const p of peers) {
-    if (p.cwd) map.set(p.cwd, p.id); // later rows (more recent registration order) win
-  }
-  return map;
-}
-
-/** Open conversations → workspace, from aioncore. */
-async function conversationsByWorkspace(port: number): Promise<Map<string, string>> {
-  const map = new Map<string, string>();
+/** Open conversations (id + workspace) from aioncore. */
+async function openConversations(port: number): Promise<Array<{ id: string; workspace: string }>> {
   try {
     const res = await fetch(`http://127.0.0.1:${port}/api/conversations?limit=100`);
-    if (!res.ok) return map;
+    if (!res.ok) return [];
     // aioncore envelopes list responses as { success, data: { items, total, has_more } }.
     const body = (await res.json()) as { data?: { items?: ApiConversation[] } };
-    const list = body.data?.items ?? [];
-    for (const c of list) {
+    const out: Array<{ id: string; workspace: string }> = [];
+    for (const c of body.data?.items ?? []) {
       const ws = c.extra && typeof c.extra.workspace === 'string' ? c.extra.workspace : '';
-      if (ws) map.set(ws, c.id); // last wins → most recent in default ordering
+      if (ws) out.push({ id: c.id, workspace: ws });
     }
+    return out;
   } catch {
-    /* aioncore not ready */
+    return []; // aioncore not ready
   }
-  return map;
+}
+
+/** Register (once) a durable inbox peer for a conversation; returns its broker id. */
+async function ensureManagedPeer(conversationId: string, workspace: string): Promise<string | null> {
+  const cached = managed.get(conversationId);
+  if (cached) return cached;
+
+  const name = nameForWorkspace(workspace);
+  const summary = name
+    ? `Agora conversation (${name}) — durable peer inbox`
+    : `Agora conversation: ${basename(workspace)} — durable peer inbox`;
+
+  const res = await brokerPost<{ id: string }>('/register', {
+    pid: process.pid, // Electron main — all managed peers share it; reaped together on quit
+    cwd: workspace,
+    git_root: null,
+    tty: null,
+    summary,
+    peer_name: null, // discovered by cwd/summary; avoids colliding with terminal named peers
+    managed_key: conversationId,
+  });
+  if (!res?.id) return null;
+  managed.set(conversationId, res.id);
+  return res.id;
 }
 
 function wrapChannel(m: BrokerMessage): string {
@@ -128,12 +158,22 @@ async function tick(): Promise<void> {
   const port = backendPort();
   if (!port) return;
 
-  const [cwdToPeer, wsToConv] = await Promise.all([peersByCwd(), conversationsByWorkspace(port)]);
-  if (cwdToPeer.size === 0 || wsToConv.size === 0) return;
+  const convs = await openConversations(port);
+  if (convs.length === 0) return;
 
-  for (const [ws, conversationId] of wsToConv) {
-    const peerId = cwdToPeer.get(ws);
-    if (!peerId) continue; // no live peer for this conversation's workspace
+  // Reconcile: drop durable peers for conversations that are no longer open, so a
+  // closed conversation doesn't leave a ghost inbox accumulating undeliverable msgs.
+  const liveIds = new Set(convs.map((c) => c.id));
+  for (const [convId, peerId] of managed) {
+    if (!liveIds.has(convId)) {
+      await brokerPost('/unregister', { id: peerId });
+      managed.delete(convId);
+    }
+  }
+
+  for (const { id: conversationId, workspace } of convs) {
+    const peerId = await ensureManagedPeer(conversationId, workspace);
+    if (!peerId) continue;
 
     const peek = await brokerPost<{ messages: BrokerMessage[] }>('/peek-messages', { id: peerId });
     const messages = peek?.messages;
@@ -163,5 +203,10 @@ export function stopPeerAutoPickup(): void {
   if (timer) {
     clearInterval(timer);
     timer = null;
+  }
+  // Best-effort teardown so durable inbox peers don't linger after the watcher stops.
+  for (const [convId, peerId] of managed) {
+    void brokerPost('/unregister', { id: peerId });
+    managed.delete(convId);
   }
 }
