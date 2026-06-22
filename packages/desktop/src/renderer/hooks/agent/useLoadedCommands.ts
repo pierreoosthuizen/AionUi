@@ -45,7 +45,7 @@ async function scanCommands(dir: string): Promise<SkillItem[]> {
       return { name: f.name.replace(/\.md$/, ''), description: content ? parseDescription(content) : '' };
     })
   );
-  return items.sort(byName);
+  return items.toSorted(byName);
 }
 
 // Static per session — scan each dir once and reuse.
@@ -78,7 +78,7 @@ export function useLoadedCommands(workspace?: string): SkillGroups {
       const merged = new Map<string, SkillItem>();
       for (const c of [...project, ...user]) if (!merged.has(c.name)) merged.set(c.name, c);
       setGroups({
-        global: Array.from(merged.values()).sort(byName),
+        global: Array.from(merged.values()).toSorted(byName),
         profiles: profileEntries.filter((p) => p.skills.length > 0),
       });
     })();

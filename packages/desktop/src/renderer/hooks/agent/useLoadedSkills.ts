@@ -125,7 +125,7 @@ export function useLoadedSkills(workspace?: string): SkillGroups {
       const merged = new Map<string, SkillItem>();
       for (const s of [...project, ...user]) if (!merged.has(s.name)) merged.set(s.name, s);
       setGroups({
-        global: Array.from(merged.values()).sort(byName),
+        global: Array.from(merged.values()).toSorted(byName),
         profiles: profileEntries.filter((p) => p.skills.length > 0),
       });
     })();
