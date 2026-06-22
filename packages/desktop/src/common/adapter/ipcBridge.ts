@@ -157,6 +157,18 @@ export const git = {
 };
 
 // ---------------------------------------------------------------------------
+// Plan usage — Anthropic OAuth usage (read from the Claude Code keychain token).
+// Native main-process bridge; null when unavailable (no token / offline / 401).
+// ---------------------------------------------------------------------------
+
+export type PlanUsageWindow = { utilization: number; resetsAt: string | null };
+export type PlanUsage = { session: PlanUsageWindow | null; weekly: PlanUsageWindow | null };
+
+export const usage = {
+  getPlanUsage: bridge.buildProvider<PlanUsage | null, void>('usage:get-plan'),
+};
+
+// ---------------------------------------------------------------------------
 // Assistants — routed to /api/assistants/*
 // ---------------------------------------------------------------------------
 

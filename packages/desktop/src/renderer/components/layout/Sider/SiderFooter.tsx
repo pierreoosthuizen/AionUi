@@ -13,6 +13,7 @@ import { iconColors } from '@renderer/styles/colors';
 import { AGORA_VERSION } from '@/common/agoraVersion';
 import { DARK_THEME_ID, LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import PlanUsageBars from './PlanUsageBars';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -75,6 +76,8 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-8px pb-8px border-t border-solid border-[var(--color-border-2)] border-l-0 border-r-0 border-b-0'>
+      {/* Plan usage (session + weekly) — hidden when collapsed (see component) */}
+      <PlanUsageBars collapsed={collapsed} />
       <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div

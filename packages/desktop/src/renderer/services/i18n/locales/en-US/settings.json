@@ -1,5 +1,10 @@
 {
   "title": "Settings",
+  "planUsage": {
+    "session": "Session",
+    "weekly": "Weekly",
+    "resets": "Resets {{when}}"
+  },
   "skillsHub": {
     "importError": "Error importing skill"
   },
