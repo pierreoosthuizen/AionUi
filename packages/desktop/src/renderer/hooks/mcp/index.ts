@@ -3,3 +3,5 @@ export { useMcpModal } from './useMcpModal';
 export { useMcpServerCRUD } from './useMcpServerCRUD';
 export { useMcpServers } from './useMcpServers';
 export { useMcpOAuth } from './useMcpOAuth';
+export { useMcpRuntimeStatus } from './useMcpRuntimeStatus';
+export type { McpRuntimeStatus } from './useMcpRuntimeStatus';

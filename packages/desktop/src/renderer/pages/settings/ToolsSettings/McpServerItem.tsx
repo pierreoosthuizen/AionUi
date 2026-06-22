@@ -4,6 +4,7 @@ import type { IMcpServer } from '@/common/config/storage';
 import McpServerHeader from './McpServerHeader';
 import McpServerToolsList from './McpServerToolsList';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
+import type { McpRuntimeStatus } from '@/renderer/hooks/mcp/useMcpRuntimeStatus';
 
 interface McpServerItemProps {
   server: IMcpServer;
@@ -11,6 +12,7 @@ interface McpServerItemProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  runtimeStatus?: McpRuntimeStatus;
   /** Extension-contributed servers are read-only (no edit/delete) */
   isReadOnly?: boolean;
   onToggleCollapse: () => void;
@@ -26,6 +28,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
+  runtimeStatus,
   isReadOnly,
   onToggleCollapse,
   onTestConnection,
@@ -47,6 +50,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
             isTestingConnection={isTestingConnection}
             oauthStatus={oauthStatus}
             isLoggingIn={isLoggingIn}
+            runtimeStatus={runtimeStatus}
             isReadOnly={isReadOnly}
             onTestConnection={onTestConnection}
             onEditServer={onEditServer}

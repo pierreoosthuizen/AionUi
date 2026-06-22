@@ -1,9 +1,10 @@
-import type { IMcpServer } from '@/common/config/storage';
+import type { IConversationMcpStatusKind, IMcpServer } from '@/common/config/storage';
 import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
 import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
+import type { McpRuntimeStatus } from '@/renderer/hooks/mcp/useMcpRuntimeStatus';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import { iconColors } from '@/renderer/styles/colors';
 
@@ -12,6 +13,8 @@ interface McpServerHeaderProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  /** Aggregated load result across active conversations (in-chat semantics). */
+  runtimeStatus?: McpRuntimeStatus;
   /** Extension-contributed servers are read-only */
   isReadOnly?: boolean;
   onTestConnection: (server: IMcpServer) => void;
@@ -19,6 +22,12 @@ interface McpServerHeaderProps {
   onDeleteServer: (serverId: string) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
 }
+
+const RUNTIME_STATUS_CLASS_NAME: Record<IConversationMcpStatusKind, string> = {
+  loaded: 'text-[var(--color-success-6)]',
+  failed: 'text-[var(--color-danger-6)]',
+  unsupported: 'text-[var(--color-warning-6)]',
+};
 
 const getStatusIcon = (
   last_test_status?: IMcpServer['last_test_status'],
@@ -147,6 +156,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
+  runtimeStatus,
   isReadOnly,
   onTestConnection,
   onEditServer,
@@ -167,6 +177,22 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
+        {runtimeStatus ? (
+          <Tooltip
+            position='top'
+            content={t('settings.mcpRuntimeStatusTooltip', {
+              loaded: runtimeStatus.loaded,
+              failed: runtimeStatus.failed,
+              unsupported: runtimeStatus.unsupported,
+            })}
+          >
+            <span
+              className={`text-12px leading-none whitespace-nowrap ${RUNTIME_STATUS_CLASS_NAME[runtimeStatus.status]}`}
+            >
+              ● {t(`conversation.mcp.status.${runtimeStatus.status}` as const)}
+            </span>
+          </Tooltip>
+        ) : null}
         {statusPopoverContent ? (
           <Popover content={statusPopoverContent} trigger='hover' position='top'>
             <span className='flex items-center cursor-default'>{statusIcon}</span>

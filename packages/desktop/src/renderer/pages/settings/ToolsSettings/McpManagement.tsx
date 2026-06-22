@@ -4,7 +4,14 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME, type IMcpServer } from '@/common/config/storage';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
-import { useMcpConnection, useMcpModal, useMcpOAuth, useMcpServerCRUD, useMcpServers } from '@/renderer/hooks/mcp';
+import {
+  useMcpConnection,
+  useMcpModal,
+  useMcpOAuth,
+  useMcpRuntimeStatus,
+  useMcpServerCRUD,
+  useMcpServers,
+} from '@/renderer/hooks/mcp';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
 
@@ -21,6 +28,11 @@ const isOAuthCapableServer = (server: IMcpServer) =>
 const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const { t } = useTranslation();
   const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers } = useMcpServers();
+  const { statusMap: runtimeStatusMap } = useMcpRuntimeStatus();
+  const runtimeStatusFor = React.useCallback(
+    (server: IMcpServer) => runtimeStatusMap.get(server.id) ?? runtimeStatusMap.get(server.name),
+    [runtimeStatusMap]
+  );
   const visibleMcpServers = React.useMemo(() => mcpServers.filter(isVisibleMcpServer), [mcpServers]);
   const { oauthStatus, loggingIn, checkOAuthStatus, markLoginRequired, clearLoginRequired, login } = useMcpOAuth();
   const handleAuthRequired = React.useCallback(
@@ -208,6 +220,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
                 isTestingConnection={testingServers[server.id] || false}
                 oauthStatus={oauthStatus[server.id]}
                 isLoggingIn={loggingIn[server.id]}
+                runtimeStatus={runtimeStatusFor(server)}
                 onToggleCollapse={() => toggleServerCollapse(server.id)}
                 onTestConnection={handleTestMcpConnection}
                 onEditServer={showEditMcpModal}
@@ -222,6 +235,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
               server={server}
               isCollapsed={mcpCollapseKey[server.id] || false}
               isTestingConnection={false}
+              runtimeStatus={runtimeStatusFor(server)}
               onToggleCollapse={() => toggleServerCollapse(server.id)}
               onTestConnection={handleTestMcpConnection}
               onEditServer={() => {}}

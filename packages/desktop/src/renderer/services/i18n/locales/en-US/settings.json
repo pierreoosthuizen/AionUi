@@ -509,6 +509,7 @@
   "mcpConnected": "Available",
   "mcpAuthenticated": "Authenticated",
   "mcpDisconnected": "Not tested",
+  "mcpRuntimeStatusTooltip": "Live status across conversations — loaded {{loaded}}, failed {{failed}}, unsupported {{unsupported}}",
   "mcpError": "Last test failed",
   "mcpErrorNodeCommandNotFound": "Command {{command}} could not be prepared. AionCore usually provisions its managed Node runtime automatically. Retry the connection test, check backend logs if it still fails, or configure this MCP server to use an absolute command path.",
   "mcpErrorBunCommandNotFound": "Command {{command}} was not found. Install Bun (which includes bun/bunx), restart Agora, or configure this MCP server to use an absolute command path.",
