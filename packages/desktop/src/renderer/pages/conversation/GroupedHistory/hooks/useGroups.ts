@@ -48,25 +48,41 @@ function writeGroups(next: ChatGroup[]): void {
   listeners.forEach((l) => l());
 }
 
+/** Find a group by name (case-insensitive/trim-tolerant) or create it; returns its id. */
+function ensureGroup(name: string): string {
+  const trimmed = name.trim();
+  const existing = readGroups().find((g) => g.name.trim().toLowerCase() === trimmed.toLowerCase());
+  if (existing) return existing.id;
+  const id = `g-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
+  writeGroups([...readGroups(), { id, name: trimmed }]);
+  return id;
+}
+
 /**
- * On new-chat creation: if the chat's workspace maps to a peer that carries a
- * `group` (peers.json), and a group with that name ALREADY exists, move the chat
- * into it. Never auto-creates a group — an unmatched chat stays Ungrouped.
+ * Auto-grouping for peer-backed chats. When the chat's workspace maps to a peer
+ * carrying a `group` (peers.json), move the chat into that group — CREATING the
+ * group if it doesn't exist yet (a named-but-absent group would otherwise be a
+ * silent no-op, the bug behind chats never landing in their peer group). Skips
+ * when the chat already has a group, so it never overrides a manual placement —
+ * which makes it safe to re-run on conversation OPEN, not only at creation.
  * Name match is case-insensitive/trim-tolerant.
  */
-export async function autoAssignPeerGroup(conversationId: string, workspace?: string): Promise<void> {
-  if (!workspace) return;
+export async function autoAssignPeerGroup(
+  conversationId: string,
+  workspace?: string,
+  currentGroupId?: string
+): Promise<void> {
+  if (!workspace || currentGroupId) return;
   const groupName = await resolvePeerGroup(workspace);
   if (!groupName) return;
-  const wanted = groupName.trim().toLowerCase();
-  const match = readGroups().find((g) => g.name.trim().toLowerCase() === wanted);
-  if (!match) return;
+  const groupId = ensureGroup(groupName);
   await ipcBridge.conversation.update.invoke({
     id: conversationId,
-    updates: { extra: { groupId: match.id } as unknown as Partial<TChatConversation['extra']> },
+    updates: { extra: { groupId } as unknown as Partial<TChatConversation['extra']> },
     merge_extra: true,
   });
   await refreshConversationCache(conversationId);
+  emitter.emit('chat.history.refresh');
 }
 
 function subscribe(listener: () => void): () => void {

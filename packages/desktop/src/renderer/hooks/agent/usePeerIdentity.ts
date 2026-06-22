@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react';
 import { fs } from '@/common/adapter/ipcBridge';
 import { CHAT_INPUT_ACCENTS, type ChatInputAccent } from '@/common/config/chatInputAccent';
+import { parsePeers, resolvePeerEntry, type PeerEntry } from '@/common/utils/peerRegistry';
 
 /**
  * Resolve a conversation's claude-peers identity (name + colour) from the CLI
@@ -23,34 +24,37 @@ const PEERS_JSON = '/Users/pierreo/.claude/peers/peers.json';
 
 const VALID_COLOURS = new Set<string>(CHAT_INPUT_ACCENTS);
 
-let cache: Promise<Map<string, PeerIdentity>> | null = null;
+let cache: Promise<PeerEntry[]> | null = null;
 
-function loadPeers(): Promise<Map<string, PeerIdentity>> {
-  if (cache) return cache;
-  // Read once per session; peers.json is effectively static at runtime.
+function loadPeers(force = false): Promise<PeerEntry[]> {
+  if (cache && !force) return cache;
   cache = fs.readFile
     .invoke({ path: PEERS_JSON })
-    .then((raw) => {
-      const map = new Map<string, PeerIdentity>();
-      if (!raw) return map;
-      const data = JSON.parse(raw) as {
-        peers?: Array<{ workspace?: string; alias?: string; colour?: string; group?: string }>;
-      };
-      for (const peer of data.peers ?? []) {
-        if (!peer.workspace || !peer.alias) continue;
-        const colour = (peer.colour && VALID_COLOURS.has(peer.colour) ? peer.colour : 'default') as ChatInputAccent;
-        map.set(peer.workspace, { alias: peer.alias, colour, group: peer.group?.trim() || undefined });
-      }
-      return map;
-    })
-    .catch(() => new Map<string, PeerIdentity>());
+    .then((raw) => parsePeers(raw || ''))
+    .catch(() => [] as PeerEntry[]);
   return cache;
+}
+
+function toIdentity(entry: PeerEntry): PeerIdentity | null {
+  if (!entry.alias) return null;
+  const colour = (entry.colour && VALID_COLOURS.has(entry.colour) ? entry.colour : 'default') as ChatInputAccent;
+  return { alias: entry.alias, colour, group: entry.group?.trim() || undefined };
+}
+
+/**
+ * Resolve an entry, reloading peers.json once if the first lookup misses. This
+ * self-heals the case where peers.json gained the entry AFTER Agora launched —
+ * the session-lifetime cache would otherwise miss it until an app restart.
+ */
+async function resolveWithReload(workspace: string): Promise<PeerEntry | undefined> {
+  let entry = resolvePeerEntry(workspace, await loadPeers());
+  if (!entry) entry = resolvePeerEntry(workspace, await loadPeers(true));
+  return entry;
 }
 
 /** Resolve a workspace's peer group name (from peers.json), or undefined. */
 export async function resolvePeerGroup(workspace: string): Promise<string | undefined> {
-  const map = await loadPeers();
-  return map.get(workspace)?.group;
+  return (await resolveWithReload(workspace))?.group?.trim() || undefined;
 }
 
 export function usePeerIdentity(workspace?: string): PeerIdentity | null {
@@ -61,8 +65,8 @@ export function usePeerIdentity(workspace?: string): PeerIdentity | null {
       return;
     }
     let alive = true;
-    void loadPeers().then((map) => {
-      if (alive) setIdentity(map.get(workspace) ?? null);
+    void resolveWithReload(workspace).then((entry) => {
+      if (alive) setIdentity(entry ? toIdentity(entry) : null);
     });
     return () => {
       alive = false;

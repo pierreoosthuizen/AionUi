@@ -15,7 +15,7 @@ import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hoo
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -35,6 +35,8 @@ import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelec
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
+import { autoAssignPeerGroup } from '../GroupedHistory/hooks/useGroups';
+import { getConversationGroupId } from '../GroupedHistory/utils/groupingHelpers';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 /** Check whether a specific skill is mounted on the conversation. */
@@ -259,6 +261,18 @@ const ChatConversation: React.FC<{
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
+
+  // Heal peer-driven grouping on open: assign this chat to its peer's group when
+  // it has none yet (covers chats created before the group existed or before the
+  // peers.json entry was added). No-op when already grouped — never fights a
+  // manual move. Runs once per opened conversation.
+  useEffect(() => {
+    if (!conversation) return;
+    const ws = conversation.extra?.workspace;
+    if (!ws) return;
+    void autoAssignPeerGroup(conversation.id, ws, getConversationGroupId(conversation));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation?.id]);
 
   const isAionrsConversation = conversation?.type === 'aionrs';
   const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);

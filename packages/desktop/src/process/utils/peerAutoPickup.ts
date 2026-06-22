@@ -31,9 +31,10 @@
  * is fully durable, outbound reply-routing is a separate follow-up.
  */
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
+import { parsePeers, resolvePeerEntry, type PeerEntry } from '@/common/utils/peerRegistry';
 
 const BROKER_URL = `http://127.0.0.1:${process.env.CLAUDE_PEERS_PORT ?? '7899'}`;
 const POLL_INTERVAL_MS = 2000;
@@ -56,23 +57,35 @@ const injected = new Set<number>();
 const managed = new Map<string, string>();
 let timer: ReturnType<typeof setInterval> | null = null;
 
-/** workspace path → peers.json session_name, read once (peers.json is static at runtime). */
-let workspaceToName: Map<string, string> | null = null;
-function nameForWorkspace(ws: string): string | undefined {
-  if (!workspaceToName) {
-    workspaceToName = new Map();
-    try {
-      const data = JSON.parse(readFileSync(PEERS_JSON, 'utf-8')) as {
-        peers?: Array<{ session_name: string; workspace?: string }>;
-      };
-      for (const p of data.peers ?? []) {
-        if (p.workspace) workspaceToName.set(p.workspace, p.session_name);
-      }
-    } catch {
-      /* no peers.json — labels fall back to the workspace basename */
-    }
+// peers.json cache + last-seen mtime. On a lookup MISS we re-stat and reload only
+// if the file changed on disk — so a peer ADDED after Agora launched self-heals
+// (the old read-once cache missed it until an app restart), while ad-hoc
+// (never-registered) workspaces don't trigger a re-read on every 2s tick.
+let peersCache: PeerEntry[] | null = null;
+let peersMtimeMs = -1;
+
+/** Reload peers.json if its mtime advanced (or never loaded). Returns true if reloaded. */
+function reloadPeers(): boolean {
+  try {
+    const m = statSync(PEERS_JSON).mtimeMs;
+    if (peersCache && m === peersMtimeMs) return false;
+    peersCache = parsePeers(readFileSync(PEERS_JSON, 'utf-8'));
+    peersMtimeMs = m;
+    return true;
+  } catch {
+    // No peers.json (or unreadable) — labels fall back to the workspace basename.
+    if (!peersCache) peersCache = [];
+    return false;
   }
-  return workspaceToName.get(ws);
+}
+
+// Exported for unit testing of the reload-on-miss self-heal; internal otherwise.
+export function nameForWorkspace(ws: string): string | undefined {
+  if (!peersCache) reloadPeers();
+  let entry = resolvePeerEntry(ws, peersCache ?? []);
+  // Miss: peers.json may have gained this entry after launch — reload on change, retry once.
+  if (!entry && reloadPeers()) entry = resolvePeerEntry(ws, peersCache ?? []);
+  return entry?.session_name;
 }
 
 function backendPort(): number | undefined {
