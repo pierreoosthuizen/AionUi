@@ -461,9 +461,11 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
-  const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
-  const disableAutoUpdater =
-    process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
+  // Agora: detached personal fork. The auto-updater feed points at upstream
+  // iOfficeAI/AionUi releases — installing one would overwrite this app's
+  // customizations with vanilla AionUi. Hard-disabled so it never checks or
+  // prompts; cherry-pick any wanted upstream fix by hand instead.
+  const disableAutoUpdater = true;
   if (!disableAutoUpdater) {
     Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
