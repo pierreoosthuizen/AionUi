@@ -19,6 +19,11 @@ type GroupedItemListProps = {
   emptyText: string;
   /** localStorage key under which the collapsed-folder set is persisted. */
   storageKey: string;
+  /** Leading char in row tooltip / fill (default `/` for slash-commands). */
+  itemPrefix?: string;
+  /** Click a row to drop `/name ` into the sendbox (default true). MCP rows are
+   *  read-only info, so they pass false. */
+  clickToFill?: boolean;
 };
 
 function loadCollapsed(key: string): Set<string> {
@@ -30,11 +35,16 @@ function loadCollapsed(key: string): Set<string> {
   }
 }
 
-const ItemRow: React.FC<{ item: SkillItem; icon: React.ReactNode }> = ({ item, icon }) => (
+const ItemRow: React.FC<{ item: SkillItem; icon: React.ReactNode; prefix: string; clickToFill: boolean }> = ({
+  item,
+  icon,
+  prefix,
+  clickToFill,
+}) => (
   <div
-    className='flex items-center gap-8px pl-24px pr-10px py-7px rd-6px cursor-pointer hover:bg-fill-2 text-13px text-t-primary'
-    title={item.description ? `/${item.name} — ${item.description}` : `/${item.name}`}
-    onClick={() => emitter.emit('sendbox.fill', `/${item.name} `)}
+    className={`flex items-center gap-8px pl-24px pr-10px py-7px rd-6px hover:bg-fill-2 text-13px text-t-primary ${clickToFill ? 'cursor-pointer' : 'cursor-default'}`}
+    title={item.description ? `${prefix}${item.name} — ${item.description}` : `${prefix}${item.name}`}
+    onClick={clickToFill ? () => emitter.emit('sendbox.fill', `${prefix}${item.name} `) : undefined}
   >
     <span className='shrink-0 text-t-secondary flex items-center'>{icon}</span>
     <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{item.name}</span>
@@ -54,6 +64,8 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
   searchPlaceholder,
   emptyText,
   storageKey,
+  itemPrefix = '/',
+  clickToFill = true,
 }) => {
   const { global, profiles } = groups;
   const [query, setQuery] = useState('');
@@ -124,7 +136,15 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
                   <span className='ml-auto text-11px font-400 text-t-tertiary'>{node.skills.length}</span>
                 </div>
                 {!isCollapsed &&
-                  node.skills.map((item) => <ItemRow key={`${node.key}:${item.name}`} item={item} icon={icon} />)}
+                  node.skills.map((item) => (
+                    <ItemRow
+                      key={`${node.key}:${item.name}`}
+                      item={item}
+                      icon={icon}
+                      prefix={itemPrefix}
+                      clickToFill={clickToFill}
+                    />
+                  ))}
               </div>
             );
           })}

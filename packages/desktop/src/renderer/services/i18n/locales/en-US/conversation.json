@@ -326,7 +326,11 @@
     },
     "mcp": {
       "tab": "MCP",
-      "empty": "No MCP servers"
+      "empty": "No MCP servers",
+      "search": "Search servers…",
+      "userScope": "User",
+      "projectScope": "Project",
+      "localScope": "Local"
     },
     "plugins": {
       "tab": "Plugins",

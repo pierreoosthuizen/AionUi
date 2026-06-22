@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import SkillsList from './components/SkillsList';
 import CommandsList from './components/CommandsList';
+import McpServersList from './components/McpServersList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
@@ -528,12 +529,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Agent → MCP tab (placeholder — wiring TBD) */}
+        {/* Agent → MCP tab content */}
         {!isWorkspaceCollapsed && activeTab === 'mcp' && (
           <FlexFullContainer containerClassName='overflow-hidden'>
-            <div className='flex-1 flex items-center justify-center'>
-              <Empty description={t('conversation.workspace.mcp.empty', { defaultValue: 'No MCP servers' })} />
-            </div>
+            <McpServersList t={t} workspace={workspace} />
           </FlexFullContainer>
         )}
 
