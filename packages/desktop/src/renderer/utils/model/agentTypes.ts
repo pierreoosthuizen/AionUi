@@ -109,12 +109,25 @@ export type AgentMetadata = {
   handshake?: AgentHandshake;
 };
 
+/**
+ * Agora private fork: only Claude is offered. The bundled aioncore backend
+ * still detects whatever CLIs are on $PATH (Aion CLI, OpenClaw, …), but this
+ * fork hides them everywhere — settings, pickers, channels, team — by keeping
+ * only the Claude backend plus any agent the user created themselves. The
+ * agent catalog lives in the prebuilt backend binary, so the renderer fetch
+ * boundary is the only place to enforce this.
+ * ponytail: hardcoded whitelist; if Claude isn't detected the list is empty.
+ */
+export function keepOnlyClaude(agents: AgentMetadata[]): AgentMetadata[] {
+  return agents.filter((a) => a.backend === 'claude' || a.agent_source === 'custom');
+}
+
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
 export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return keepOnlyClaude(agents as AgentMetadata[]);
     }
   } catch {
     // fallback to empty
@@ -132,7 +145,7 @@ export async function fetchManagedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return keepOnlyClaude(agents as AgentMetadata[]);
     }
   } catch {
     // fallback to empty
