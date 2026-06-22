@@ -56,7 +56,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   // Current conversation's workspace, so the titlebar can host the always-available
   // Finder/Terminal/Ghostty/VSCode launcher next to the workspace toggle.
   const [workspacePath, setWorkspacePath] = useState<string | null>(null);
-  const [isTempWorkspace, setIsTempWorkspace] = useState(false);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
@@ -92,7 +91,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     const conversation_id = match?.[1];
     if (!conversation_id) {
       setWorkspacePath(null);
-      setIsTempWorkspace(false);
       return;
     }
     let cancelled = false;
@@ -101,14 +99,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       .then((conversation) => {
         if (cancelled) return;
         setWorkspacePath(conversation?.extra?.workspace ?? null);
-        setIsTempWorkspace(
-          Boolean((conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace)
-        );
       })
       .catch(() => {
         if (cancelled) return;
         setWorkspacePath(null);
-        setIsTempWorkspace(false);
       });
     return () => {
       cancelled = true;
@@ -367,9 +361,11 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
-        {/* Always-available workspace launcher (Finder/Terminal/Ghostty/VSCode), next to the panel toggle */}
+        {/* Always-available workspace launcher (Finder/Terminal/Ghostty/VSCode), next to the panel toggle.
+            isTemporary is forced false: a real workspacePath is always openable, and aioncore's
+            temp flag stays set even after a real folder is opened (see Workspace/index.tsx). */}
         {showWorkspaceButton && workspacePath && (
-          <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={isTempWorkspace} />
+          <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={false} />
         )}
         {showWorkspaceButton && (
           <button
