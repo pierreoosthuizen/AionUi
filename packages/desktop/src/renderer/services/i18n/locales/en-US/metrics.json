@@ -1,0 +1,19 @@
+{
+  "panel": {
+    "title": "Metrics",
+    "hide": "Hide metrics panel",
+    "show": "Show metrics panel"
+  },
+  "tabs": {
+    "usage": "Usage",
+    "peers": "Peers"
+  },
+  "charts": {
+    "sessionUsage": "Session Usage",
+    "weeklyUsage": "Weekly Usage",
+    "openPeersWeek": "Open Peers (7d)",
+    "activePeers5min": "Active Peers (5m)",
+    "showChart": "Show chart",
+    "hideChart": "Hide chart"
+  }
+}

@@ -17,8 +17,9 @@ import {
   useMessageLstCache,
 } from '@renderer/pages/conversation/Messages/hooks';
 import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
+import { MetricsPanel, MetricsPanelButton, MOCK_METRICS_HISTORY } from '@renderer/pages/conversation/components/MetricsPanel';
 import HOC from '@renderer/utils/ui/HOC';
-import React from 'react';
+import React, { useState } from 'react';
 import AcpE2EStreamInjector from './AcpE2EStreamInjector';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
@@ -59,6 +60,10 @@ const AcpChat: React.FC<{
   const teamPermission = useTeamPermission();
   const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
 
+  const [metricsOpen, setMetricsOpen] = useState(false);
+  // TODO(reviewer): replace with useMetricsHistory(metricsOpen) once data branch merges
+  const metricsHistory = MOCK_METRICS_HISTORY;
+
   return (
     <ConversationProvider
       value={{
@@ -74,11 +79,28 @@ const AcpChat: React.FC<{
       }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>
-        <div className='flex-1 flex flex-col px-20px min-h-0'>
+        {/*
+         * Overflow-trap analysis:
+         *   - FlexFullContainer renders `absolute size-full` internally and MessageList
+         *     uses `overflow-y-auto` — any absolute child INSIDE FlexFullContainer would
+         *     be clipped by that scroll context.
+         *   - We anchor MetricsPanelButton + MetricsPanel at this outer flex column,
+         *     which has NO overflow clip, so absolute children are never clipped.
+         *   - `relative` added here so the absolutely-positioned button is contained.
+         *   - The panel itself is a normal flex child (not absolute), so it shrinks the
+         *     message list naturally without escaping the column.
+         */}
+        <div className='relative flex-1 flex flex-col px-20px min-h-0'>
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
+          {/* Metrics panel — sits between the message list and the send box */}
+          <MetricsPanel
+            history={metricsHistory}
+            visible={metricsOpen}
+            onRequestHide={() => setMetricsOpen(false)}
+          />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}
@@ -91,6 +113,8 @@ const AcpChat: React.FC<{
               teamRuntime={teamRuntime}
             ></AcpSendBox>
           )}
+          {/* Trigger button — absolutely positioned bottom-right of this column */}
+          <MetricsPanelButton open={metricsOpen} onClick={() => setMetricsOpen((v) => !v)} />
         </div>
       </ConversationArtifactProvider>
     </ConversationProvider>
