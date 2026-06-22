@@ -14,9 +14,8 @@ type ContextUsageBarProps = {
 };
 
 /**
- * Slim context-window bar (no heading) for placing under the chat input, so the
- * usage readout survives when the right-side Project panel is collapsed. Same data
- * as ContextUsageFooter — just the bar + used / limit / %.
+ * Slim context-window bar (no heading) under the chat input — the single place the
+ * context-window usage is shown. ~1/3 width, right-aligned to the chat box.
  */
 const ContextUsageBar: React.FC<ContextUsageBarProps> = ({ conversation_id, className = '' }) => {
   const usage = useContextUsage(conversation_id);
@@ -26,7 +25,7 @@ const ContextUsageBar: React.FC<ContextUsageBarProps> = ({ conversation_id, clas
   const barColor = pct > 90 ? 'rgb(var(--danger-6))' : pct > 70 ? 'rgb(var(--warning-6))' : 'rgb(var(--primary-6))';
 
   return (
-    <div className={`flex items-center gap-8px px-4px mt-8px ${className}`}>
+    <div className={`flex items-center gap-8px w-1/3 ml-auto px-4px mt-8px ${className}`}>
       <div className='h-3px flex-1 rd-999px bg-fill-3 overflow-hidden'>
         <div className='h-full rd-999px transition-all' style={{ width: `${pct}%`, background: barColor }} />
       </div>
