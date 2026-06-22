@@ -29,6 +29,15 @@ const FLAG_KEY = 'dangerously-load-development-channels';
 const FLAG_ANCHOR = '"replay-user-messages": "",';
 const FLAG_INSERT = `"replay-user-messages": "",\n                "${FLAG_KEY}": "server:claude-peers",`;
 
+// Append the Agora math→KaTeX system prompt via the claude CLI's
+// --append-system-prompt-file (extraArgs pass-through). Scoped to Agora's ACP
+// spawn, so it never leaks to terminal peers. Anchor is the line FLAG_INSERT
+// creates, so this must run after the flag insert below.
+const APPEND_KEY = 'append-system-prompt-file';
+const APPEND_PATH = '/Users/pierreo/Development/Projects/agora/AionUi/resources/agora-claude-system-prompt.md';
+const APPEND_ANCHOR = `"${FLAG_KEY}": "server:claude-peers",`;
+const APPEND_INSERT = `"${FLAG_KEY}": "server:claude-peers",\n                "${APPEND_KEY}": "${APPEND_PATH}",`;
+
 const MCP_MARKER = '"claude-peers":';
 const MCP_ANCHOR = 'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers },';
 const MCP_INSERT =
@@ -66,6 +75,8 @@ export function patchAcpChannels(): void {
         let src = readFileSync(file, 'utf-8');
         const before = src;
         if (!src.includes(FLAG_KEY) && src.includes(FLAG_ANCHOR)) src = src.replace(FLAG_ANCHOR, FLAG_INSERT);
+        // After the flag insert — its created line is this anchor.
+        if (!src.includes(APPEND_KEY) && src.includes(APPEND_ANCHOR)) src = src.replace(APPEND_ANCHOR, APPEND_INSERT);
         if (!src.includes(MCP_MARKER) && src.includes(MCP_ANCHOR)) src = src.replace(MCP_ANCHOR, MCP_INSERT);
         // Upgrade already-patched adapters (extracted before CLAUDE_PEERS_AGORA
         // existed): the MCP_MARKER guard above skips them, so flip the old empty

@@ -31,6 +31,18 @@ const FLAG_VALUE = 'server:claude-peers';
 const FLAG_ANCHOR = '"replay-user-messages": "",';
 const FLAG_INSERT = `"replay-user-messages": "",\n                // aionui-fork patch: enable claude-peers auto-pickup (channel\n                // messages inject as user turns). See scripts/patch-aioncore-channels.js.\n                "${FLAG_KEY}": "${FLAG_VALUE}",`;
 
+// --- (3) append Agora system prompt (math→KaTeX directive), inserted into extraArgs ---
+// Agora's chat renderer typesets $…$/$$…$$ via KaTeX, but Claude Code fences
+// formulas as ```text by default → literal. Appending this file to the system
+// prompt tells it to emit LaTeX delimiters. Scoped to Agora's ACP spawn (every
+// chat, any cwd) — never the global CLAUDE.md, which would make terminal peers
+// emit $$ that render as literal dollars. ponytail: hardcoded dev-tree path,
+// matching the bun/server.ts paths above — personal single-machine build.
+const APPEND_KEY = 'append-system-prompt-file';
+const APPEND_PATH = '/Users/pierreo/Development/Projects/agora/AionUi/resources/agora-claude-system-prompt.md';
+const APPEND_ANCHOR = `"${FLAG_KEY}": "${FLAG_VALUE}",`;
+const APPEND_INSERT = `"${FLAG_KEY}": "${FLAG_VALUE}",\n                // aionui-fork patch: append Agora system prompt (math→KaTeX). See scripts/patch-aioncore-channels.js.\n                "${APPEND_KEY}": "${APPEND_PATH}",`;
+
 // --- (1) claude-peers MCP server, inserted into the mcpServers assembly ---
 const MCP_MARKER = '"claude-peers":';
 const MCP_ANCHOR = 'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers },';
@@ -62,11 +74,16 @@ function findAdapterFiles(dir, found = []) {
 function patchFile(file) {
   let src = fs.readFileSync(file, 'utf-8');
   const before = src;
-  const status = { flag: 'already', mcp: 'already' };
+  const status = { flag: 'already', mcp: 'already', append: 'already' };
 
   if (!src.includes(FLAG_KEY)) {
     status.flag = src.includes(FLAG_ANCHOR) ? 'patched' : 'no-anchor';
     if (status.flag === 'patched') src = src.replace(FLAG_ANCHOR, FLAG_INSERT);
+  }
+  // Must run AFTER the flag insert — its anchor is the line that insert creates.
+  if (!src.includes(APPEND_KEY)) {
+    status.append = src.includes(APPEND_ANCHOR) ? 'patched' : 'no-anchor';
+    if (status.append === 'patched') src = src.replace(APPEND_ANCHOR, APPEND_INSERT);
   }
   if (!src.includes(MCP_MARKER)) {
     status.mcp = src.includes(MCP_ANCHOR) ? 'patched' : 'no-anchor';
@@ -83,13 +100,13 @@ function patchAdapters(roots) {
   for (const root of roots) {
     for (const file of findAdapterFiles(root)) {
       total++;
-      const { flag, mcp } = patchFile(file);
+      const { flag, mcp, append } = patchFile(file);
       const rel = path.relative(path.resolve(__dirname, '..'), file);
-      if (flag === 'patched' || mcp === 'patched') {
+      if (flag === 'patched' || mcp === 'patched' || append === 'patched') {
         changed++;
-        console.log(`  ✓ patched ${rel} (flag:${flag} mcp:${mcp})`);
-      } else if (flag === 'no-anchor' || mcp === 'no-anchor') {
-        console.warn(`  ! anchor missing ${rel} (flag:${flag} mcp:${mcp})`);
+        console.log(`  ✓ patched ${rel} (flag:${flag} mcp:${mcp} append:${append})`);
+      } else if (flag === 'no-anchor' || mcp === 'no-anchor' || append === 'no-anchor') {
+        console.warn(`  ! anchor missing ${rel} (flag:${flag} mcp:${mcp} append:${append})`);
       } else {
         console.log(`  • already patched ${rel}`);
       }
