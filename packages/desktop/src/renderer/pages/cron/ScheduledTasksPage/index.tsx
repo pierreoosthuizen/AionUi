@@ -22,7 +22,15 @@ import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 
-const WEEKDAY_KEY: Record<string, string> = { MON: 'monday', TUE: 'tuesday', WED: 'wednesday', THU: 'thursday', FRI: 'friday', SAT: 'saturday', SUN: 'sunday' };
+const WEEKDAY_KEY: Record<string, string> = {
+  MON: 'monday',
+  TUE: 'tuesday',
+  WED: 'wednesday',
+  THU: 'thursday',
+  FRI: 'friday',
+  SAT: 'saturday',
+  SUN: 'sunday',
+};
 
 /** Human schedule line for a peer task — plain frequency, no cron expr (ADR-0002 §5). */
 function formatPeerSchedule(task: IPeerTask, t: (k: string, o?: Record<string, unknown>) => string): string {
@@ -36,7 +44,10 @@ function formatPeerSchedule(task: IPeerTask, t: (k: string, o?: Record<string, u
     case 'weekdays':
       return t('cron.page.scheduleDesc.weekdaysAt', { time: task.time ?? '09:00' });
     case 'weekly':
-      return t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${WEEKDAY_KEY[task.weekday ?? 'MON']}`), time: task.time ?? '09:00' });
+      return t('cron.page.scheduleDesc.weeklyAt', {
+        day: t(`cron.page.weekday.${WEEKDAY_KEY[task.weekday ?? 'MON']}`),
+        time: task.time ?? '09:00',
+      });
     default:
       return '';
   }
@@ -49,7 +60,9 @@ const ScheduledTasksPage: React.FC = () => {
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const { data: peerTasks = [], mutate: refetchPeerTasks } = useSWR<IPeerTask[]>('peer-task:list', () => ipcBridge.peerTask.list.invoke());
+  const { data: peerTasks = [], mutate: refetchPeerTasks } = useSWR<IPeerTask[]>('peer-task:list', () =>
+    ipcBridge.peerTask.list.invoke()
+  );
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingPeerTask, setEditingPeerTask] = useState<IPeerTask | undefined>(undefined);
   const [keepAwake, setKeepAwake] = useState(false);
@@ -94,16 +107,19 @@ const ScheduledTasksPage: React.FC = () => {
     [refetchPeerTasks]
   );
 
-  const handleRunPeerNow = useCallback(async (task: IPeerTask) => {
-    try {
-      const result = await ipcBridge.peerTask.runNow.invoke({ id: task.id });
-      if (result.status === 'sent') Message.success(t('cron.page.peer.runSent'));
-      else if (result.status === 'skipped') Message.warning(t('cron.page.peer.runSkipped'));
-      else Message.error(result.error || t('cron.page.peer.runError'));
-    } catch (err) {
-      Message.error(String(err));
-    }
-  }, [t]);
+  const handleRunPeerNow = useCallback(
+    async (task: IPeerTask) => {
+      try {
+        const result = await ipcBridge.peerTask.runNow.invoke({ id: task.id });
+        if (result.status === 'sent') Message.success(t('cron.page.peer.runSent'));
+        else if (result.status === 'skipped') Message.warning(t('cron.page.peer.runSkipped'));
+        else Message.error(result.error || t('cron.page.peer.runError'));
+      } catch (err) {
+        Message.error(String(err));
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
     setKeepAwake(configService.get('system.keepAwake') ?? false);
@@ -300,7 +316,10 @@ const ScheduledTasksPage: React.FC = () => {
             })}
 
             {peerTasks.map((task) => {
-              const nextRun = task.enabled && task.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(task.next_run_at_ms)}` : '-';
+              const nextRun =
+                task.enabled && task.next_run_at_ms
+                  ? `${t('cron.nextRun')} ${formatNextRun(task.next_run_at_ms)}`
+                  : '-';
               return (
                 <div
                   key={task.id}
@@ -337,17 +356,25 @@ const ScheduledTasksPage: React.FC = () => {
 
                   <div className='mt-14px flex items-center justify-between gap-10px'>
                     <Tooltip content={task.peer_label}>
-                      <span className='min-w-0 truncate text-12px leading-18px text-t-secondary'>{task.peer_label}</span>
+                      <span className='min-w-0 truncate text-12px leading-18px text-t-secondary'>
+                        {task.peer_label}
+                      </span>
                     </Tooltip>
 
                     <div className='flex shrink-0 items-center gap-10px' onClick={(e) => e.stopPropagation()}>
                       <Tooltip content={t('cron.page.peer.runNow')}>
-                        <PlayOne size='16' className='cursor-pointer text-t-secondary hover:text-t-primary' onClick={() => handleRunPeerNow(task)} />
+                        <PlayOne
+                          size='16'
+                          className='cursor-pointer text-t-secondary hover:text-t-primary'
+                          onClick={() => handleRunPeerNow(task)}
+                        />
                       </Tooltip>
                       <Popconfirm title={t('cron.page.peer.deleteConfirm')} onOk={() => handleDeletePeer(task)}>
                         <Delete size='16' className='cursor-pointer text-t-secondary hover:text-red-5' />
                       </Popconfirm>
-                      {task.frequency !== 'manual' && <Switch size='small' checked={task.enabled} onChange={() => handleTogglePeer(task)} />}
+                      {task.frequency !== 'manual' && (
+                        <Switch size='small' checked={task.enabled} onChange={() => handleTogglePeer(task)} />
+                      )}
                     </div>
                   </div>
                 </div>

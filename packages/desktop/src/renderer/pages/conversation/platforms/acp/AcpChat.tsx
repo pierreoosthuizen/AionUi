@@ -17,7 +17,8 @@ import {
   useMessageLstCache,
 } from '@renderer/pages/conversation/Messages/hooks';
 import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
-import { MetricsPanel, MetricsPanelButton, MOCK_METRICS_HISTORY } from '@renderer/pages/conversation/components/MetricsPanel';
+import { MetricsPanel, MetricsPanelButton } from '@renderer/pages/conversation/components/MetricsPanel';
+import { useMetricsHistory } from '@renderer/hooks/agent/useMetricsHistory';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useState } from 'react';
 import AcpE2EStreamInjector from './AcpE2EStreamInjector';
@@ -61,8 +62,7 @@ const AcpChat: React.FC<{
   const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
 
   const [metricsOpen, setMetricsOpen] = useState(false);
-  // TODO(reviewer): replace with useMetricsHistory(metricsOpen) once data branch merges
-  const metricsHistory = MOCK_METRICS_HISTORY;
+  const metricsHistory = useMetricsHistory(metricsOpen);
 
   return (
     <ConversationProvider
@@ -96,11 +96,7 @@ const AcpChat: React.FC<{
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
           {/* Metrics panel — sits between the message list and the send box */}
-          <MetricsPanel
-            history={metricsHistory}
-            visible={metricsOpen}
-            onRequestHide={() => setMetricsOpen(false)}
-          />
+          <MetricsPanel history={metricsHistory} visible={metricsOpen} onRequestHide={() => setMetricsOpen(false)} />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}

@@ -11,7 +11,13 @@ import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-d
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import type { IActivePeer, ICreateCronJobParams, ICronAgentConfig, ICronJob, IPeerTask } from '@/common/adapter/ipcBridge';
+import type {
+  IActivePeer,
+  ICreateCronJobParams,
+  ICronAgentConfig,
+  ICronJob,
+  IPeerTask,
+} from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
@@ -163,7 +169,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [targetType, setTargetType] = useState<TargetType>('peer');
 
   // Live, managed peers eligible as task targets — refetched while the dialog is open.
-  const { data: activePeers = [] } = useSWR<IActivePeer[]>(visible && targetType === 'peer' ? 'peer-task:active-peers' : null, () => ipcBridge.peerTask.listActivePeers.invoke());
+  const { data: activePeers = [] } = useSWR<IActivePeer[]>(
+    visible && targetType === 'peer' ? 'peer-task:active-peers' : null,
+    () => ipcBridge.peerTask.listActivePeers.invoke()
+  );
 
   const isEditMode = !!editJob || !!editPeerTask;
   const [execution_mode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
@@ -557,131 +566,131 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           )}
 
           {targetType === 'agent' && (
-          <FormItem
-            label={t('cron.page.form.agent')}
-            field='agent'
-            rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
-          >
-            <Select
-              placeholder={t('cron.page.form.agentPlaceholder')}
-              onChange={handleAgentChange}
-              renderFormat={(_option, value) => {
-                // Find selected agent to render logo + name in the trigger
-                const strVal = value as unknown as string;
-                if (!strVal) return '';
-                const [type, id] = strVal.split(':');
-                let name = id;
-                let logo: React.ReactNode = <Robot size='16' />;
-                if (type === 'cli') {
-                  const agent = cliAgents.find((a) => (a.backend || a.agent_type) === id);
-                  if (agent) {
-                    name = agent.name;
-                    const logoSrc = resolveAgentLogo({
-                      icon: agent.icon,
-                      backend: agent.backend || agent.agent_type,
-                    });
-                    if (logoSrc) {
-                      logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
-                    }
-                  }
-                } else if (type === 'preset') {
-                  const assistant = presetAssistants.find((a) => a.id === id);
-                  if (assistant) {
-                    name = assistant.name;
-                    const avatar = resolveAssistantAvatar(assistant.avatar);
-                    if (avatar.kind === 'image') {
-                      logo = <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />;
-                    } else if (avatar.kind === 'emoji') {
-                      logo = <span className='text-14px leading-16px'>{avatar.value}</span>;
-                    }
-                  }
-                }
-                return (
-                  <div className='flex items-center gap-8px'>
-                    {logo}
-                    <span>{name}</span>
-                  </div>
-                );
-              }}
+            <FormItem
+              label={t('cron.page.form.agent')}
+              field='agent'
+              rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
             >
-              {cliAgents.length > 0 && (
-                <OptGroup label={t('conversation.dropdown.cliAgents')}>
-                  {cliAgents.map((agent) => {
-                    const agentKey = agent.backend || agent.agent_type;
-                    const logo = resolveAgentLogo({
-                      icon: agent.icon,
-                      backend: agentKey,
-                    });
-                    const disabled = agentKey === 'aionrs' && !hasAionrsProvider;
-                    return (
-                      <Option key={`cli:${agentKey}`} value={`cli:${agentKey}`} disabled={disabled}>
-                        <div
-                          className='flex items-center gap-8px'
-                          title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
-                        >
-                          {logo ? (
-                            <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
-                          ) : (
-                            <Robot size='16' />
-                          )}
-                          <span>{agent.name}</span>
-                          {disabled && (
-                            <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
-                          )}
-                        </div>
-                      </Option>
-                    );
-                  })}
-                </OptGroup>
-              )}
-              {presetAssistants.length > 0 && (
-                <OptGroup label={t('conversation.dropdown.presetAssistants')}>
-                  {presetAssistants.map((assistant) => {
-                    const avatar = resolveAssistantAvatar(assistant.avatar);
-                    return (
-                      <Option key={`preset:${assistant.id}`} value={`preset:${assistant.id}`}>
-                        <div className='flex items-center gap-8px'>
-                          {avatar.kind === 'image' ? (
-                            <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />
-                          ) : avatar.kind === 'emoji' ? (
-                            <span className='text-14px leading-16px'>{avatar.value}</span>
-                          ) : (
-                            <Robot size='16' />
-                          )}
-                          <span>{assistant.name}</span>
-                        </div>
-                      </Option>
-                    );
-                  })}
-                </OptGroup>
-              )}
-            </Select>
-          </FormItem>
+              <Select
+                placeholder={t('cron.page.form.agentPlaceholder')}
+                onChange={handleAgentChange}
+                renderFormat={(_option, value) => {
+                  // Find selected agent to render logo + name in the trigger
+                  const strVal = value as unknown as string;
+                  if (!strVal) return '';
+                  const [type, id] = strVal.split(':');
+                  let name = id;
+                  let logo: React.ReactNode = <Robot size='16' />;
+                  if (type === 'cli') {
+                    const agent = cliAgents.find((a) => (a.backend || a.agent_type) === id);
+                    if (agent) {
+                      name = agent.name;
+                      const logoSrc = resolveAgentLogo({
+                        icon: agent.icon,
+                        backend: agent.backend || agent.agent_type,
+                      });
+                      if (logoSrc) {
+                        logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
+                      }
+                    }
+                  } else if (type === 'preset') {
+                    const assistant = presetAssistants.find((a) => a.id === id);
+                    if (assistant) {
+                      name = assistant.name;
+                      const avatar = resolveAssistantAvatar(assistant.avatar);
+                      if (avatar.kind === 'image') {
+                        logo = <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />;
+                      } else if (avatar.kind === 'emoji') {
+                        logo = <span className='text-14px leading-16px'>{avatar.value}</span>;
+                      }
+                    }
+                  }
+                  return (
+                    <div className='flex items-center gap-8px'>
+                      {logo}
+                      <span>{name}</span>
+                    </div>
+                  );
+                }}
+              >
+                {cliAgents.length > 0 && (
+                  <OptGroup label={t('conversation.dropdown.cliAgents')}>
+                    {cliAgents.map((agent) => {
+                      const agentKey = agent.backend || agent.agent_type;
+                      const logo = resolveAgentLogo({
+                        icon: agent.icon,
+                        backend: agentKey,
+                      });
+                      const disabled = agentKey === 'aionrs' && !hasAionrsProvider;
+                      return (
+                        <Option key={`cli:${agentKey}`} value={`cli:${agentKey}`} disabled={disabled}>
+                          <div
+                            className='flex items-center gap-8px'
+                            title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
+                          >
+                            {logo ? (
+                              <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
+                            ) : (
+                              <Robot size='16' />
+                            )}
+                            <span>{agent.name}</span>
+                            {disabled && (
+                              <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
+                            )}
+                          </div>
+                        </Option>
+                      );
+                    })}
+                  </OptGroup>
+                )}
+                {presetAssistants.length > 0 && (
+                  <OptGroup label={t('conversation.dropdown.presetAssistants')}>
+                    {presetAssistants.map((assistant) => {
+                      const avatar = resolveAssistantAvatar(assistant.avatar);
+                      return (
+                        <Option key={`preset:${assistant.id}`} value={`preset:${assistant.id}`}>
+                          <div className='flex items-center gap-8px'>
+                            {avatar.kind === 'image' ? (
+                              <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />
+                            ) : avatar.kind === 'emoji' ? (
+                              <span className='text-14px leading-16px'>{avatar.value}</span>
+                            ) : (
+                              <Robot size='16' />
+                            )}
+                            <span>{assistant.name}</span>
+                          </div>
+                        </Option>
+                      );
+                    })}
+                  </OptGroup>
+                )}
+              </Select>
+            </FormItem>
           )}
 
           {targetType === 'agent' && (
-          <FormItem label={t('cron.page.form.executionMode')}>
-            <Radio.Group
-              value={execution_mode}
-              onChange={(value) => setExecutionMode(value as ExecutionMode)}
-              className='flex flex-wrap items-center gap-20px'
-            >
-              {executionModeOptions.map((option) => {
-                return (
-                  <Radio
-                    key={option.value}
-                    value={option.value}
-                    className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'
-                  >
-                    <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
-                  </Radio>
-                );
-              })}
-            </Radio.Group>
-            <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
-              <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
-            </div>
-          </FormItem>
+            <FormItem label={t('cron.page.form.executionMode')}>
+              <Radio.Group
+                value={execution_mode}
+                onChange={(value) => setExecutionMode(value as ExecutionMode)}
+                className='flex flex-wrap items-center gap-20px'
+              >
+                {executionModeOptions.map((option) => {
+                  return (
+                    <Radio
+                      key={option.value}
+                      value={option.value}
+                      className='m-0 min-w-0 text-14px text-t-secondary cursor-pointer'
+                    >
+                      <span className='pl-4px text-14px font-medium text-t-primary'>{option.label}</span>
+                    </Radio>
+                  );
+                })}
+              </Radio.Group>
+              <div className='mt-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+                <p className='m-0 text-12px leading-18px text-t-primary'>{selectedExecutionModeOption.description}</p>
+              </div>
+            </FormItem>
           )}
 
           <FormItem
@@ -740,62 +749,62 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           )}
 
           {targetType === 'agent' && (
-          <div className='mt-16px'>
-            <Button
-              type='text'
-              onClick={() => setAdvancedOpen((open) => !open)}
-              className='!h-auto !p-0 hover:!bg-transparent'
-            >
-              <span className='flex items-center gap-6px text-14px font-medium text-t-primary'>
-                <Down
-                  size='14'
-                  fill='currentColor'
-                  className={`shrink-0 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
-                />
-                <span>{t('cron.page.form.advancedSettings')}</span>
-              </span>
-            </Button>
+            <div className='mt-16px'>
+              <Button
+                type='text'
+                onClick={() => setAdvancedOpen((open) => !open)}
+                className='!h-auto !p-0 hover:!bg-transparent'
+              >
+                <span className='flex items-center gap-6px text-14px font-medium text-t-primary'>
+                  <Down
+                    size='14'
+                    fill='currentColor'
+                    className={`shrink-0 transition-transform ${advancedOpen ? 'rotate-180' : ''}`}
+                  />
+                  <span>{t('cron.page.form.advancedSettings')}</span>
+                </span>
+              </Button>
 
-            {advancedOpen && (
-              <div className='mt-12px grid gap-x-16px gap-y-16px md:grid-cols-2'>
-                {showModelSelector && (
-                  <div className='min-w-0'>
+              {advancedOpen && (
+                <div className='mt-12px grid gap-x-16px gap-y-16px md:grid-cols-2'>
+                  {showModelSelector && (
+                    <div className='min-w-0'>
+                      <label className='mb-8px block text-14px font-medium text-t-primary'>
+                        {t('cron.page.form.model')}
+                      </label>
+                      <GuidModelSelector
+                        isGeminiMode={isGeminiMode}
+                        modelList={filteredProviders}
+                        current_model={geminiCurrentModel}
+                        setCurrentModel={handleGeminiModelSelect}
+                        currentAcpCachedModelInfo={acpCachedModelInfo}
+                        selectedAcpModel={model_id ?? null}
+                        setSelectedAcpModel={handleAcpModelSelect}
+                      />
+                    </div>
+                  )}
+
+                  <div className={advancedFieldCount === 1 ? 'md:col-span-2' : ''}>
                     <label className='mb-8px block text-14px font-medium text-t-primary'>
-                      {t('cron.page.form.model')}
+                      {t('cron.page.form.workspace')}
                     </label>
-                    <GuidModelSelector
-                      isGeminiMode={isGeminiMode}
-                      modelList={filteredProviders}
-                      current_model={geminiCurrentModel}
-                      setCurrentModel={handleGeminiModelSelect}
-                      currentAcpCachedModelInfo={acpCachedModelInfo}
-                      selectedAcpModel={model_id ?? null}
-                      setSelectedAcpModel={handleAcpModelSelect}
+                    <WorkspaceFolderSelect
+                      value={workspace}
+                      onChange={(next) => setWorkspace(next || undefined)}
+                      onClear={handleWorkspaceClear}
+                      placeholder={t('cron.page.form.selectFolder')}
+                      recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+                      chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+                        defaultValue: 'Choose a different folder',
+                      })}
+                      triggerTestId='cron-workspace-trigger'
+                      menuTestId='cron-workspace-menu'
+                      menuZIndex={10020}
                     />
                   </div>
-                )}
-
-                <div className={advancedFieldCount === 1 ? 'md:col-span-2' : ''}>
-                  <label className='mb-8px block text-14px font-medium text-t-primary'>
-                    {t('cron.page.form.workspace')}
-                  </label>
-                  <WorkspaceFolderSelect
-                    value={workspace}
-                    onChange={(next) => setWorkspace(next || undefined)}
-                    onClear={handleWorkspaceClear}
-                    placeholder={t('cron.page.form.selectFolder')}
-                    recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
-                    chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
-                      defaultValue: 'Choose a different folder',
-                    })}
-                    triggerTestId='cron-workspace-trigger'
-                    menuTestId='cron-workspace-menu'
-                    menuZIndex={10020}
-                  />
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
           )}
         </Form>
       </div>

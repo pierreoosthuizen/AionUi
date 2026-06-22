@@ -23,7 +23,10 @@ const DOW: Record<string, number> = { SUN: 0, MON: 1, TUE: 2, WED: 3, THU: 4, FR
  * Next fire time (epoch ms) at or after `fromMs`, in local time.
  * `manual` never auto-fires → undefined. `time` defaults to 09:00; `weekday` to MON.
  */
-export function computeNextRun(task: Pick<IPeerTask, 'frequency' | 'time' | 'weekday'>, fromMs: number): number | undefined {
+export function computeNextRun(
+  task: Pick<IPeerTask, 'frequency' | 'time' | 'weekday'>,
+  fromMs: number
+): number | undefined {
   const { frequency } = task;
   if (frequency === 'manual') return undefined;
 
@@ -60,7 +63,10 @@ export function computeNextRun(task: Pick<IPeerTask, 'frequency' | 'time' | 'wee
  *                   next_run WITHOUT firing (ADR-0002 §3, no stale catch-up).
  * - `idle`        — disabled, manual, or not yet due.
  */
-export function decideFire(task: Pick<IPeerTask, 'enabled' | 'frequency' | 'next_run_at_ms'>, nowMs: number): 'fire' | 'rollforward' | 'idle' {
+export function decideFire(
+  task: Pick<IPeerTask, 'enabled' | 'frequency' | 'next_run_at_ms'>,
+  nowMs: number
+): 'fire' | 'rollforward' | 'idle' {
   if (!task.enabled || task.frequency === 'manual' || task.next_run_at_ms == null) return 'idle';
   if (task.next_run_at_ms > nowMs) return 'idle';
   return nowMs - task.next_run_at_ms <= FIRE_TOLERANCE_MS ? 'fire' : 'rollforward';

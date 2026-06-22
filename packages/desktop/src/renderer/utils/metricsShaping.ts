@@ -47,7 +47,7 @@ function buildBars(
   windowEndMs: number,
   slotMs: number,
   nowMs: number,
-  pick: (slotRows: MetricHistoryRow[]) => number | null,
+  pick: (slotRows: MetricHistoryRow[]) => number | null
 ): ChartBar[] {
   const bars: ChartBar[] = [];
   let rowIdx = 0;
@@ -126,7 +126,7 @@ export function shapeSessionUsage(rows: MetricHistoryRow[], nowMs: number): Char
 
   const windowStart = windowEnd - MS_5HOURS;
   const bars = buildBars(rows, windowStart, windowEnd, MS_5MIN, nowMs, (slotRows) =>
-    lastNonNull(slotRows, 'session_pct'),
+    lastNonNull(slotRows, 'session_pct')
   );
 
   return {
@@ -161,7 +161,7 @@ export function shapeWeeklyUsage(rows: MetricHistoryRow[], nowMs: number): Chart
 
   const windowStart = windowEnd - MS_7DAYS;
   const bars = buildBars(rows, windowStart, windowEnd, MS_1HOUR, nowMs, (slotRows) =>
-    lastNonNull(slotRows, 'weekly_pct'),
+    lastNonNull(slotRows, 'weekly_pct')
   );
 
   return {
@@ -181,9 +181,7 @@ export function shapeWeeklyUsage(rows: MetricHistoryRow[], nowMs: number): Chart
  */
 export function shapeOpenPeersWeek(rows: MetricHistoryRow[], nowMs: number): ChartSeries {
   const windowStart = nowMs - MS_7DAYS;
-  const bars = buildBars(rows, windowStart, nowMs, MS_1HOUR, nowMs, (slotRows) =>
-    maxInSlot(slotRows, 'peers_open'),
-  );
+  const bars = buildBars(rows, windowStart, nowMs, MS_1HOUR, nowMs, (slotRows) => maxInSlot(slotRows, 'peers_open'));
 
   let observedMax = 0;
   for (const bar of bars) {
@@ -207,9 +205,7 @@ export function shapeOpenPeersWeek(rows: MetricHistoryRow[], nowMs: number): Cha
  */
 export function shapeActivePeers5min(rows: MetricHistoryRow[], nowMs: number): ChartSeries {
   const windowStart = nowMs - MS_5HOURS;
-  const bars = buildBars(rows, windowStart, nowMs, MS_5MIN, nowMs, (slotRows) =>
-    lastNonNull(slotRows, 'peers_busy'),
-  );
+  const bars = buildBars(rows, windowStart, nowMs, MS_5MIN, nowMs, (slotRows) => lastNonNull(slotRows, 'peers_busy'));
 
   let observedMax = 0;
   for (const bar of bars) {

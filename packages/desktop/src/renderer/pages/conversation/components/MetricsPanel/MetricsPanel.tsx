@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { MetricsHistory } from '@/common/types/metricsPanel';
+import type { ChartSeries, MetricsHistory } from '@/common/types/metricsPanel';
 import { Button, Tabs } from '@arco-design/web-react';
 import { Close, PreviewClose, PreviewOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -100,7 +100,7 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
       dragStartH.current = height;
       (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
     },
-    [height],
+    [height]
   );
 
   const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
@@ -111,16 +111,13 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
     setHeight(next);
   }, []);
 
-  const onPointerUp = useCallback(
-    (e: React.PointerEvent<HTMLDivElement>) => {
-      if (!(e.currentTarget as HTMLDivElement).hasPointerCapture(e.pointerId)) return;
-      (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
-      const delta = dragStartY.current - e.clientY;
-      const next = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, dragStartH.current + delta));
-      persistHeight(next);
-    },
-    [],
-  );
+  const onPointerUp = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (!(e.currentTarget as HTMLDivElement).hasPointerCapture(e.pointerId)) return;
+    (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+    const delta = dragStartY.current - e.clientY;
+    const next = Math.min(MAX_HEIGHT, Math.max(MIN_HEIGHT, dragStartH.current + delta));
+    persistHeight(next);
+  }, []);
 
   // ------------------------------------------------------------------
   // Per-chart toggle
@@ -140,16 +137,12 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
   if (!visible) return null;
 
   // Helper: render a chart slot (visible or collapsed)
-  const renderChartSlot = (key: string, title: string, series: MetricsHistory[keyof MetricsHistory]) => {
-    // series can be ChartSeries or boolean (loading) — guard for type safety
-    if (typeof series === 'boolean') return null;
+  const renderChartSlot = (key: string, title: string, series: ChartSeries) => {
     const hidden = hiddenCharts.has(key);
     return (
       <div key={key} className='flex-1 min-w-0 flex flex-col gap-4px'>
         <div className='flex items-center justify-between gap-4px'>
-          {hidden ? (
-            <span className='text-11px text-t-tertiary truncate'>{title}</span>
-          ) : null}
+          {hidden ? <span className='text-11px text-t-tertiary truncate'>{title}</span> : null}
           <ChartToggleButton chartKey={key} hidden={hidden} onToggle={toggleChart} />
         </div>
         {!hidden && <BarChart series={series} title={title} />}
@@ -177,9 +170,7 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
 
       {/* Panel header */}
       <div className='flex items-center justify-between px-12px pb-0 shrink-0'>
-        <span className='text-12px font-medium text-t-secondary leading-none'>
-          {t('metrics.panel.title')}
-        </span>
+        <span className='text-12px font-medium text-t-secondary leading-none'>{t('metrics.panel.title')}</span>
         <Button
           type='text'
           size='mini'

@@ -367,9 +367,7 @@ const ChatConversation: React.FC<{
         };
 
   const headerExtraNode = (
-    <div className='flex items-center gap-8px'>
-      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
-    </div>
+    <div className='flex items-center gap-8px'>{modelSelector && <div className='shrink-0'>{modelSelector}</div>}</div>
   );
 
   return (

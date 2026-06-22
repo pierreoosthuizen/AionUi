@@ -46,7 +46,9 @@ async function listPeers(): Promise<BrokerPeer[]> {
 /** Managed (chat-backed) peers only — the valid task targets for the picker. */
 export async function listActivePeers(): Promise<IActivePeer[]> {
   const peers = await listPeers();
-  return peers.filter((p) => p.managed_key != null).map((p) => ({ managed_key: p.managed_key as string, peer_name: p.peer_name, cwd: p.cwd }));
+  return peers
+    .filter((p) => p.managed_key != null)
+    .map((p) => ({ managed_key: p.managed_key as string, peer_name: p.peer_name, cwd: p.cwd }));
 }
 
 /** Push the prompt into the peer's live conversation, or silent-skip if not active. */

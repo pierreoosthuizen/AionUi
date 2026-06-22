@@ -1428,7 +1428,9 @@ export const peerTask = {
   add: bridge.buildProvider<IPeerTask, ICreatePeerTaskParams>('peer-task:add'),
   update: bridge.buildProvider<IPeerTask, { id: string; updates: Partial<IPeerTask> }>('peer-task:update'),
   remove: bridge.buildProvider<void, { id: string }>('peer-task:remove'),
-  runNow: bridge.buildProvider<{ status: 'sent' | 'skipped' | 'error'; error?: string }, { id: string }>('peer-task:run-now'),
+  runNow: bridge.buildProvider<{ status: 'sent' | 'skipped' | 'error'; error?: string }, { id: string }>(
+    'peer-task:run-now'
+  ),
   listActivePeers: bridge.buildProvider<IActivePeer[], void>('peer-task:list-active-peers'),
 };
 
