@@ -8,6 +8,7 @@ import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
+import WorkspaceOpenButton from './WorkspaceOpenButton';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
@@ -236,6 +237,10 @@ const ChatLayout: React.FC<{
       </FlexFullContainer>
       <div className='flex items-center gap-12px shrink-0'>
         {props.headerExtra}
+        {/* Always-available workspace launcher (Finder/Terminal/Ghostty/VSCode); top bar so it survives panel collapse */}
+        {workspaceEnabled && workspacePath && (
+          <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={isTemporaryWorkspace ?? false} />
+        )}
         {isWindowsRuntime && workspaceEnabled && (
           <button
             type='button'
@@ -350,8 +355,6 @@ const ChatLayout: React.FC<{
               collapsed={rightSiderCollapsed}
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
-              workspacePath={workspacePath}
-              isTemporaryWorkspace={isTemporaryWorkspace}
             >
               {props.siderTitle}
             </WorkspacePanelHeader>

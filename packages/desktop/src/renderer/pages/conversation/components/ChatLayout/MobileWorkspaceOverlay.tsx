@@ -1,4 +1,5 @@
 import WorkspacePanelHeader from './WorkspacePanelHeader';
+import WorkspaceOpenButton from './WorkspaceOpenButton';
 import { WORKSPACE_HEADER_HEIGHT } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
@@ -52,10 +53,13 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
         collapsed={rightSiderCollapsed}
         onToggle={() => dispatchWorkspaceToggleEvent()}
         togglePlacement='left'
-        workspacePath={workspacePath}
-        isTemporaryWorkspace={isTemporaryWorkspace}
       >
-        {siderTitle}
+        <div className='flex items-center justify-between gap-8px w-full'>
+          <span className='flex-1 truncate'>{siderTitle}</span>
+          {workspacePath && (
+            <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={isTemporaryWorkspace ?? false} />
+          )}
+        </div>
       </WorkspacePanelHeader>
       <ArcoLayout.Content className='bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
         {sider}
