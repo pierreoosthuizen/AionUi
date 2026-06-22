@@ -5,6 +5,7 @@
  */
 
 import { execFile } from 'node:child_process';
+import path from 'node:path';
 import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } from '@/common/config/configMigration';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
@@ -17,6 +18,7 @@ import {
 import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
 import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
+import { getDataPath } from './utils';
 
 type ConfigFile = typeof ProcessConfigType;
 type MigrationStepResult = boolean;
@@ -160,16 +162,49 @@ function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['
   );
 }
 
+// Pinned to a real published tag (not @latest) to avoid per-spawn refetch,
+// version drift, and the supply-chain surface of resolving newest on launch.
+// Bump deliberately.
+const CHROME_DEVTOOLS_PINNED_PACKAGE = 'chrome-devtools-mcp@1.3.0';
+// The historical default transport. Used to detect installs that still carry the
+// un-customized legacy config so we can migrate them without clobbering user edits.
+const LEGACY_CHROME_DEVTOOLS_ARGS = ['-y', 'chrome-devtools-mcp@latest'];
+
+/** Dedicated, persistent Chrome profile for browser automation. Co-located with
+ *  Agora's data dir (survives OS cache cleaners) and CLI-safe (no spaces). The
+ *  user signs in once here; logins persist across runs. */
+function getChromeAutomationProfileDir(): string {
+  return path.join(getDataPath(), 'chrome-automation-profile');
+}
+
+/** chrome-devtools-mcp args for Option B — drive a dedicated, signed-in Chrome.
+ *  - persistent --user-data-dir: log in once, state persists
+ *  - --channel=stable: predictable Chrome binary
+ *  - --headless=false: visible window so the user can complete sign-in
+ *  No --isolated (would wipe the profile), no --browser-url (mcp launches and
+ *  manages its own Chrome, so we never touch the user's main browser — sidesteps
+ *  Chrome 136+ default-profile remote-debugging lockdown). */
+function buildChromeDevtoolsArgs(): string[] {
+  return [
+    '-y',
+    CHROME_DEVTOOLS_PINNED_PACKAGE,
+    `--user-data-dir=${getChromeAutomationProfileDir()}`,
+    '--channel=stable',
+    '--headless=false',
+  ];
+}
+
 function buildDefaultMcpServers(): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
-    args: ['-y', 'chrome-devtools-mcp@latest'],
+    args: buildChromeDevtoolsArgs(),
   };
 
   return [
     {
       name: BUILTIN_CHROME_DEVTOOLS_NAME,
-      description: 'Default MCP server: chrome-devtools',
+      description:
+        'Browser automation. First run opens a dedicated Chrome window — sign in to the sites you want the agent to use; logins persist across sessions.',
       enabled: false,
       builtin: true,
       transport: {
@@ -288,6 +323,30 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
       data: {
         builtin: true,
         original_json: buildOriginalJsonFromTransport(existingChromeDevtools),
+      },
+    });
+  }
+
+  // Migrate installs still carrying the legacy default transport (un-pinned
+  // `@latest`, no dedicated profile) to the Option B config. Gated on an exact
+  // match against the legacy args so user-customized entries are left untouched.
+  if (
+    existingChromeDevtools &&
+    existingChromeDevtools.transport.type === 'stdio' &&
+    existingChromeDevtools.transport.command === 'npx' &&
+    areStringArraysEqual(existingChromeDevtools.transport.args, LEGACY_CHROME_DEVTOOLS_ARGS)
+  ) {
+    const transport = { type: 'stdio' as const, command: 'npx', args: buildChromeDevtoolsArgs() };
+    await mcpService.updateServer.invoke({
+      id: existingChromeDevtools.id,
+      data: {
+        builtin: true,
+        transport,
+        original_json: buildOriginalJsonFromTransport({
+          name: BUILTIN_CHROME_DEVTOOLS_NAME,
+          description: existingChromeDevtools.description,
+          transport,
+        }),
       },
     });
   }
