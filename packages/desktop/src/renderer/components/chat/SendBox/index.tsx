@@ -19,6 +19,7 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
+import { listContinuation } from '@/renderer/utils/chat/listContinuation';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems, type FileSelectionItem } from '@/renderer/utils/file/fileSelection';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
@@ -608,6 +609,42 @@ const SendBox: React.FC<{
 
   const handleOverlayKeyDown = (event: React.KeyboardEvent) => {
     return conversationExport.handleKeyDown(event) || slashController.onKeyDown(event);
+  };
+
+  // Programmatically replace the textarea value and restore the caret afterwards.
+  const applyTextWithCaret = (value: string, caret: number) => {
+    handleTextAreaChange(value);
+    requestAnimationFrame(() => {
+      const textarea = getTextareaElement();
+      if (textarea) {
+        textarea.selectionStart = textarea.selectionEnd = caret;
+        syncCaretPosition(textarea);
+      }
+    });
+  };
+
+  // Shift+Enter on a markdown list line continues the list (next marker / number),
+  // or exits it when the item is empty. Plain Enter still sends — untouched.
+  const handleListContinuation = (event: React.KeyboardEvent): boolean => {
+    if (event.key !== 'Enter' || !event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) return false;
+    const textarea = getTextareaElement();
+    if (!textarea || textarea.selectionStart !== textarea.selectionEnd) return false;
+    const pos = textarea.selectionStart ?? 0;
+    const after = textarea.value.slice(pos);
+    if (after !== '' && !after.startsWith('\n')) return false; // only when caret is at end of its line
+    const lineStart = textarea.value.lastIndexOf('\n', pos - 1) + 1;
+    const cont = listContinuation(textarea.value.slice(lineStart, pos));
+    if (!cont) return false;
+    event.preventDefault();
+    if ('exit' in cont) {
+      applyTextWithCaret(textarea.value.slice(0, lineStart) + textarea.value.slice(pos), lineStart);
+    } else {
+      applyTextWithCaret(
+        textarea.value.slice(0, pos) + cont.insert + textarea.value.slice(pos),
+        pos + cont.insert.length
+      );
+    }
+    return true;
   };
 
   const renderExportFileNamePanel = () => {
@@ -1616,7 +1653,12 @@ const SendBox: React.FC<{
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
               onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+                return (
+                  handleAtFileMenuKeyDown(event) ||
+                  handleOverlayKeyDown(event) ||
+                  handleHistoryKeyDown(event) ||
+                  handleListContinuation(event)
+                );
               })}
             ></Input.TextArea>
           </div>

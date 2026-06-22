@@ -118,7 +118,6 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
-  const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -133,7 +132,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   }
 
   const handleCopy = () => {
-    const baseText = shouldRenderPlainText ? text : json ? JSON.stringify(data, null, 2) : text;
+    const baseText = isUserMessage ? text : json ? JSON.stringify(data, null, 2) : text;
     const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
     const textToCopy = fileList + baseText;
     copyText(textToCopy)
@@ -207,12 +206,10 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
                 : undefined),
           }}
         >
-          {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {shouldRenderPlainText ? (
-            <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
-              {text}
-            </div>
-          ) : json ? (
+          {/* User messages render as markdown too (bullets, clickable links via gfm;
+              hard line breaks preserved via remarkBreaks). JSON auto-collapse stays
+              assistant-only — a user rarely pastes raw JSON output to fold. */}
+          {json && !isUserMessage ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <div data-testid='message-text-content'>
                 <MarkdownView
@@ -222,7 +219,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             </CollapsibleContent>
           ) : (
             <div data-testid='message-text-content'>
-              <MarkdownView codeStyle={CODE_STYLE}>{data}</MarkdownView>
+              <MarkdownView codeStyle={CODE_STYLE}>{isUserMessage ? text : (data as string)}</MarkdownView>
             </div>
           )}
         </div>

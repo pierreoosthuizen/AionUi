@@ -31,13 +31,17 @@ export function useContextUsage(conversation_id?: string): ContextUsage | null {
     }
     let alive = true;
 
-    void getConversationOrNull(conversation_id).then((c) => {
-      if (!alive || !c || c.type !== 'acp') return;
-      const seedUsed = c.extra?.last_token_usage?.total_tokens;
-      const seedLimit = c.extra?.last_context_limit;
-      if (typeof seedUsed === 'number') setUsed(seedUsed);
-      if (typeof seedLimit === 'number' && seedLimit > 0) setLimit(seedLimit);
-    });
+    void getConversationOrNull(conversation_id)
+      .then((c) => {
+        if (!alive || !c || c.type !== 'acp') return;
+        const seedUsed = c.extra?.last_token_usage?.total_tokens;
+        const seedLimit = c.extra?.last_context_limit;
+        if (typeof seedUsed === 'number') setUsed(seedUsed);
+        if (typeof seedLimit === 'number' && seedLimit > 0) setLimit(seedLimit);
+      })
+      .catch(() => {
+        // Best-effort seed only — the live acp_context_usage stream still updates.
+      });
 
     const off = ipcBridge.acpConversation.responseStream.on((m) => {
       if (m.conversation_id !== conversation_id || m.type !== 'acp_context_usage') return;

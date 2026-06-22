@@ -48,10 +48,18 @@ vi.mock('@/common', () => ({
       sendMessage: {
         invoke: sendMessageInvokeMock,
       },
+      // Used by useContextUsage (ContextUsageBar under the input).
+      responseStream: {
+        on: vi.fn(() => () => {}),
+      },
     },
     conversation: {
       stop: {
         invoke: vi.fn().mockResolvedValue(undefined),
+      },
+      // useContextUsage seeds from the persisted conversation snapshot.
+      get: {
+        invoke: vi.fn().mockResolvedValue(null),
       },
     },
   },
