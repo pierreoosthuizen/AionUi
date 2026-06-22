@@ -10,7 +10,7 @@ import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { TokenUsageData } from '@/common/config/storage';
+import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -372,10 +372,24 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
         case 'acp_context_usage': {
           const usageData = message.data as { used: number; size: number };
           if (usageData && typeof usageData.used === 'number') {
-            setTokenUsage({ total_tokens: usageData.used });
+            const newTokenUsage: TokenUsageData = { total_tokens: usageData.used };
+            setTokenUsage(newTokenUsage);
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
+            // Persist so the out-of-chat context bar can seed on tab switch (with
+            // no active turn there's no stream to read). aionrs already does this
+            // on finish; acp only kept it in local state, so the bar showed 0%.
+            void ipcBridge.conversation.update.invoke({
+              id: conversation_id,
+              updates: {
+                extra: {
+                  last_token_usage: newTokenUsage,
+                  ...(usageData.size > 0 ? { last_context_limit: usageData.size } : {}),
+                } as TChatConversation['extra'],
+              },
+              merge_extra: true,
+            });
           }
           break;
         }

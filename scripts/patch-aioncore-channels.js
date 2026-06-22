@@ -37,7 +37,7 @@ const MCP_ANCHOR = 'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ..
 const MCP_INSERT =
   'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers, ' +
   '"claude-peers": { type: "stdio", command: "/Users/pierreo/.bun/bin/bun", ' +
-  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: {} } },';
+  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: { CLAUDE_PEERS_AGORA: "1" } } },';
 
 /** Recursively collect every adapter acp-agent.js under a root. */
 function findAdapterFiles(dir, found = []) {

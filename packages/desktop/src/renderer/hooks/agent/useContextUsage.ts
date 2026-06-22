@@ -31,6 +31,12 @@ export function useContextUsage(conversation_id?: string): ContextUsage | null {
     }
     let alive = true;
 
+    // Reset on conversation switch so the bar never shows the previous
+    // conversation's numbers while the new one's seed/stream is still loading
+    // (otherwise tabbing between sessions bleeds one session's usage into another).
+    setUsed(0);
+    setLimit(DEFAULT_CONTEXT_LIMIT);
+
     void getConversationOrNull(conversation_id)
       .then((c) => {
         if (!alive || !c || c.type !== 'acp') return;

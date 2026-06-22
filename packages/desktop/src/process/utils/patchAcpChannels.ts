@@ -34,7 +34,12 @@ const MCP_ANCHOR = 'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ..
 const MCP_INSERT =
   'mcpServers: { ...(userProvidedOptions?.mcpServers || {}), ...mcpServers, ' +
   '"claude-peers": { type: "stdio", command: "/Users/pierreo/.bun/bin/bun", ' +
-  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: {} } },';
+  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: { CLAUDE_PEERS_AGORA: "1" } } },';
+
+// In-place upgrade for adapters patched before the env existed (see apply loop).
+const MCP_ENV_OLD = 'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: {} }';
+const MCP_ENV_NEW =
+  'args: ["/Users/pierreo/Development/ForkedRepos/claude-peers-mcp/server.ts"], env: { CLAUDE_PEERS_AGORA: "1" } }';
 
 function findAdapters(dir: string, found: string[] = []): string[] {
   let entries;
@@ -62,6 +67,10 @@ export function patchAcpChannels(): void {
         const before = src;
         if (!src.includes(FLAG_KEY) && src.includes(FLAG_ANCHOR)) src = src.replace(FLAG_ANCHOR, FLAG_INSERT);
         if (!src.includes(MCP_MARKER) && src.includes(MCP_ANCHOR)) src = src.replace(MCP_ANCHOR, MCP_INSERT);
+        // Upgrade already-patched adapters (extracted before CLAUDE_PEERS_AGORA
+        // existed): the MCP_MARKER guard above skips them, so flip the old empty
+        // env in place. Idempotent — MCP_ENV_OLD is absent once upgraded.
+        if (src.includes(MCP_ENV_OLD)) src = src.replace(MCP_ENV_OLD, MCP_ENV_NEW);
         if (src !== before) {
           writeFileSync(file, src);
           console.info(`[AionUi] patched claude-peers channels into ${file}`);
