@@ -188,6 +188,8 @@ vi.mock('@/renderer/utils/emitter', () => ({
     emit: emitterEmitMock,
   },
   useAddEventListener: vi.fn(),
+  // Returns an unsubscribe fn — useWorkspaceChanges calls it on cleanup.
+  addEventListener: vi.fn(() => vi.fn()),
 }));
 vi.mock('@/renderer/utils/file/fileSelection', () => ({
   mergeFileSelectionItems: vi.fn(),
