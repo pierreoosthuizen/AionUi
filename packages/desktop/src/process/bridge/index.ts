@@ -15,6 +15,7 @@ import { initThemeBridge } from './themeBridge';
 import { initShellBridge } from './shellBridge';
 import { initGitBridge } from './gitBridge';
 import { initUsageBridge } from './usageBridge';
+import { initMetricsBridge } from './metricsBridge';
 import { initPeerTaskBridge } from './peerTaskBridge';
 
 export type BridgeDependencies = Record<string, never>;
@@ -31,6 +32,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initShellBridge();
   initGitBridge();
   initUsageBridge();
+  initMetricsBridge();
   initPeerTaskBridge();
 }
 
@@ -46,6 +48,7 @@ export {
   initShellBridge,
   initGitBridge,
   initUsageBridge,
+  initMetricsBridge,
   initPeerTaskBridge,
 };
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

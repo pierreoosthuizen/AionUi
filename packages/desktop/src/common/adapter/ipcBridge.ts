@@ -83,6 +83,7 @@ import type {
   UpdateDownloadResult,
 } from '../update/updateTypes';
 import type { Theme } from '@/common/theme/types';
+import type { MetricHistoryRow, MetricHistoryQuery } from '@/common/types/metricsPanel';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
@@ -166,6 +167,14 @@ export type PlanUsage = { session: PlanUsageWindow | null; weekly: PlanUsageWind
 
 export const usage = {
   getPlanUsage: bridge.buildProvider<PlanUsage | null, void>('usage:get-plan'),
+};
+
+// ---------------------------------------------------------------------------
+// Metrics history — snapshots from the local metrics.db (main process only).
+// ---------------------------------------------------------------------------
+
+export const metrics = {
+  getHistory: bridge.buildProvider<MetricHistoryRow[], MetricHistoryQuery>('metrics:get-history'),
 };
 
 // ---------------------------------------------------------------------------
