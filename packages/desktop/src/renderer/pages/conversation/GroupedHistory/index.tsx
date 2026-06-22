@@ -601,7 +601,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 <Tooltip
                   mini
                   position='left'
-                  content={hideEmptyGroups ? t('conversation.history.showEmptyGroups') : t('conversation.history.hideEmptyGroups')}
+                  content={
+                    hideEmptyGroups
+                      ? t('conversation.history.showEmptyGroups')
+                      : t('conversation.history.hideEmptyGroups')
+                  }
                 >
                   <span className='flex items-center justify-center cursor-pointer text-t-tertiary hover:text-t-primary transition-colors'>
                     {hideEmptyGroups ? (
@@ -619,67 +623,71 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         {/* L1: Group sections — user-defined groups (Claude-Desktop style).
             Drag a group header to reorder; order persists via useGroups. */}
         {!collapsedSections.has('projects') && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
-          <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
-            {visibleGroups.map((group) => {
-              const sectionKey = `group:${group.id}`;
-              const list = groupSections.byGroup.get(group.id) ?? [];
-              const isEmptyGroup = list.length === 0;
-              return (
-                <SortableGroupSection
-                  key={group.id}
-                  id={group.id}
-                  disabled={collapsed || !isDragEnabled}
-                  renderLabel={(handle) =>
-                    !collapsed && (
-                      <Dropdown
-                        trigger='contextMenu'
-                        position='bl'
-                        droplist={
-                          <Menu
-                            onClickMenuItem={(key) => {
-                              if (key === 'rename') openRenameGroup(group);
-                              else if (key === 'delete' && isEmptyGroup) deleteGroup(group.id);
-                            }}
-                          >
-                            <Menu.Item key='rename'>{t('conversation.history.renameGroup')}</Menu.Item>
-                            <Menu.Item key='delete' disabled={!isEmptyGroup}>
-                              {isEmptyGroup ? (
-                                t('conversation.history.deleteGroup')
-                              ) : (
-                                <Tooltip mini position='right' content={t('conversation.history.deleteGroupNotEmpty')}>
-                                  <span>{t('conversation.history.deleteGroup')}</span>
-                                </Tooltip>
-                              )}
-                            </Menu.Item>
-                          </Menu>
-                        }
-                      >
-                        <div {...handle.attributes} {...handle.listeners}>
-                          <SectionLabel sectionKey={sectionKey} label={group.name} />
-                        </div>
-                      </Dropdown>
-                    )
-                  }
-                >
-                  {!collapsedSections.has(sectionKey) && (
-                    <div className='min-w-0'>
-                      {list.length > 0
-                        ? list.map((conversation) => renderConversation(conversation))
-                        : !collapsed && (
-                            <div className='flex items-center px-16px h-24px select-none'>
-                              <span className='text-12px text-t-tertiary leading-none'>
-                                {t('conversation.history.groupEmpty')}
-                              </span>
-                            </div>
-                          )}
-                    </div>
-                  )}
-                </SortableGroupSection>
-              );
-            })}
-          </SortableContext>
-        </DndContext>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleGroupDragEnd}>
+            <SortableContext items={groupIds} strategy={verticalListSortingStrategy}>
+              {visibleGroups.map((group) => {
+                const sectionKey = `group:${group.id}`;
+                const list = groupSections.byGroup.get(group.id) ?? [];
+                const isEmptyGroup = list.length === 0;
+                return (
+                  <SortableGroupSection
+                    key={group.id}
+                    id={group.id}
+                    disabled={collapsed || !isDragEnabled}
+                    renderLabel={(handle) =>
+                      !collapsed && (
+                        <Dropdown
+                          trigger='contextMenu'
+                          position='bl'
+                          droplist={
+                            <Menu
+                              onClickMenuItem={(key) => {
+                                if (key === 'rename') openRenameGroup(group);
+                                else if (key === 'delete' && isEmptyGroup) deleteGroup(group.id);
+                              }}
+                            >
+                              <Menu.Item key='rename'>{t('conversation.history.renameGroup')}</Menu.Item>
+                              <Menu.Item key='delete' disabled={!isEmptyGroup}>
+                                {isEmptyGroup ? (
+                                  t('conversation.history.deleteGroup')
+                                ) : (
+                                  <Tooltip
+                                    mini
+                                    position='right'
+                                    content={t('conversation.history.deleteGroupNotEmpty')}
+                                  >
+                                    <span>{t('conversation.history.deleteGroup')}</span>
+                                  </Tooltip>
+                                )}
+                              </Menu.Item>
+                            </Menu>
+                          }
+                        >
+                          <div {...handle.attributes} {...handle.listeners}>
+                            <SectionLabel sectionKey={sectionKey} label={group.name} />
+                          </div>
+                        </Dropdown>
+                      )
+                    }
+                  >
+                    {!collapsedSections.has(sectionKey) && (
+                      <div className='min-w-0'>
+                        {list.length > 0
+                          ? list.map((conversation) => renderConversation(conversation))
+                          : !collapsed && (
+                              <div className='flex items-center px-16px h-24px select-none'>
+                                <span className='text-12px text-t-tertiary leading-none'>
+                                  {t('conversation.history.groupEmpty')}
+                                </span>
+                              </div>
+                            )}
+                      </div>
+                    )}
+                  </SortableGroupSection>
+                );
+              })}
+            </SortableContext>
+          </DndContext>
         )}
 
         {/* L1: Ungrouped section — chats not assigned to any group */}
