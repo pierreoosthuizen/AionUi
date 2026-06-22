@@ -14,6 +14,11 @@ there).
 - **Worktree button** (folder+) — opens a small modal asking for a branch name,
   then runs `git worktree add` into a sibling folder and repoints the
   conversation at the new worktree so the agent works there.
+- **Diff chip** (`+N −N`) — read-only line-change count vs `HEAD` (staged +
+  unstaged tracked changes), shown next to the worktree button when there is a
+  diff. Like Claude Desktop's chip but without a commit button. Polls every 4s
+  and on `acp.workspace.refresh`. Untracked files are not counted (`git diff`
+  ignores them).
 
 ## Behavior & safeguards
 
@@ -30,8 +35,8 @@ there).
   created off `HEAD` (`git worktree add -b <branch> <path> HEAD`).
 - **Workspace switch** — after a worktree is created the conversation's
   `extra.workspace` is updated (with `custom_workspace: true`) and the SWR cache
-  + `acp.workspace.refresh` / `chat.history.refresh` events fire so the rest of
-  the UI follows.
+  - `acp.workspace.refresh` / `chat.history.refresh` events fire so the rest of
+    the UI follows.
 
 ## Architecture
 
@@ -56,23 +61,26 @@ Handlers are registered by `initGitBridge()` from `bridge/index.ts` at startup.
 
 ## Files
 
-| File | Role |
-| --- | --- |
-| `packages/desktop/src/process/utils/worktreePath.ts` | Pure helpers: `sanitizeBranchForPath`, `computeWorktreePath` |
-| `packages/desktop/src/process/bridge/gitBridge.ts` | Native `git status` / `checkout` / `worktree add` providers |
-| `packages/desktop/src/process/bridge/index.ts` | Wires `initGitBridge()` |
-| `packages/desktop/src/common/adapter/ipcBridge.ts` | `git` service definition (`git:status`, `git:checkout`, `git:create-worktree`) |
-| `packages/desktop/src/renderer/components/workspace-git/useWorkspaceGit.ts` | Hook: status + checkout + createWorktree actions |
-| `packages/desktop/src/renderer/components/workspace-git/WorkspaceGitControls.tsx` | Branch dropdown + worktree button + modal |
-| `packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx` | Renders the controls beside the context bar |
-| `packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json` | `conversation.git.*` strings |
-| `tests/unit/process/worktreePath.test.ts` | Unit tests for the path helpers |
+| File                                                                              | Role                                                                           |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `packages/desktop/src/process/utils/worktreePath.ts`                              | Pure helpers: `sanitizeBranchForPath`, `computeWorktreePath`                   |
+| `packages/desktop/src/process/bridge/gitBridge.ts`                                | Native `git status` / `checkout` / `worktree add` / `diff --numstat` providers |
+| `packages/desktop/src/process/utils/gitNumstat.ts`                                | Pure `sumNumstat` parser for the diff chip                                     |
+| `packages/desktop/src/process/bridge/index.ts`                                    | Wires `initGitBridge()`                                                        |
+| `packages/desktop/src/common/adapter/ipcBridge.ts`                                | `git` service definition (`git:status`, `git:checkout`, `git:create-worktree`) |
+| `packages/desktop/src/renderer/components/workspace-git/useWorkspaceGit.ts`       | Hook: status + checkout + createWorktree actions                               |
+| `packages/desktop/src/renderer/components/workspace-git/WorkspaceGitControls.tsx` | Branch dropdown + worktree button + modal                                      |
+| `packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx`   | Renders the controls beside the context bar                                    |
+| `packages/desktop/src/renderer/services/i18n/locales/en-US/conversation.json`     | `conversation.git.*` strings                                                   |
+| `tests/unit/process/worktreePath.test.ts`                                         | Unit tests for the path helpers                                                |
+| `tests/unit/process/gitNumstat.test.ts`                                           | Unit tests for `sumNumstat`                                                    |
 
 ## Result contract
 
 - `git.status` → `{ isRepo, currentBranch, branches }`
 - `git.checkout` → `{ ok, error?: 'dirty' | 'failed', message? }`
 - `git.createWorktree` → `{ ok, path?, branch?, message? }`
+- `git.diffStat` → `{ added, removed }`
 
 Errors are returned as result objects (not thrown) so the renderer maps them to
 i18n toasts without relying on IPC error serialization.

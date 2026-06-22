@@ -153,6 +153,7 @@ export const git = {
     { ok: boolean; path?: string; branch?: string; message?: string },
     { workspace: string; branch: string; from?: string }
   >('git:create-worktree'),
+  diffStat: bridge.buildProvider<{ added: number; removed: number }, { workspace: string }>('git:diff-stat'),
 };
 
 // ---------------------------------------------------------------------------

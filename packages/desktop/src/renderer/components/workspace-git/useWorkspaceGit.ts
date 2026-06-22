@@ -10,11 +10,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSWRConfig } from 'swr';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { emitter } from '@/renderer/utils/emitter';
+import { addEventListener, emitter } from '@/renderer/utils/emitter';
 
 export type GitStatus = { isRepo: boolean; currentBranch: string | null; branches: string[] };
+export type GitDiffStat = { added: number; removed: number };
 
 const EMPTY: GitStatus = { isRepo: false, currentBranch: null, branches: [] };
+const EMPTY_DIFF: GitDiffStat = { added: 0, removed: 0 };
 
 /**
  * Native git state + actions for a conversation's workspace. Reads branch list
@@ -25,6 +27,7 @@ export function useWorkspaceGit(conversation_id: string, workspace?: string) {
   const { t } = useTranslation();
   const { mutate } = useSWRConfig();
   const [status, setStatus] = useState<GitStatus>(EMPTY);
+  const [diff, setDiff] = useState<GitDiffStat>(EMPTY_DIFF);
 
   const refresh = useCallback(async () => {
     if (!workspace) {
@@ -41,6 +44,33 @@ export function useWorkspaceGit(conversation_id: string, workspace?: string) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Diff chip (+added/−removed vs HEAD). Polls like useWorkspaceChanges since the
+  // agent edits files between refreshes; also re-pulls on workspace-refresh.
+  // ponytail: 4s poll, fine for a local app.
+  useEffect(() => {
+    if (!workspace) {
+      setDiff(EMPTY_DIFF);
+      return;
+    }
+    let alive = true;
+    const pull = async () => {
+      try {
+        const res = await ipcBridge.git.diffStat.invoke({ workspace });
+        if (alive) setDiff(res);
+      } catch {
+        if (alive) setDiff(EMPTY_DIFF);
+      }
+    };
+    void pull();
+    const id = setInterval(pull, 4000);
+    const off = addEventListener('acp.workspace.refresh', pull);
+    return () => {
+      alive = false;
+      clearInterval(id);
+      off();
+    };
+  }, [workspace]);
 
   const checkout = useCallback(
     async (branch: string) => {
@@ -83,5 +113,5 @@ export function useWorkspaceGit(conversation_id: string, workspace?: string) {
     [workspace, conversation_id, mutate, t]
   );
 
-  return { status, refresh, checkout, createWorktree };
+  return { status, diff, refresh, checkout, createWorktree };
 }

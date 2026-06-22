@@ -526,7 +526,8 @@
     "worktreeFailed": "Failed to create worktree",
     "checkoutSuccess": "Switched to {{branch}}",
     "checkoutFailed": "Failed to switch branch",
-    "dirtyTree": "Working tree has uncommitted changes — commit/stash or create a worktree."
+    "dirtyTree": "Working tree has uncommitted changes — commit/stash or create a worktree.",
+    "diffTooltip": "Lines changed vs HEAD (added / removed)"
   },
   "runtimePreparing": {
     "sendboxHint": "Preparing the runtime environment. First startup can take a little longer."

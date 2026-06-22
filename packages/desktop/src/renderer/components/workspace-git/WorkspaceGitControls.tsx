@@ -22,7 +22,7 @@ type WorkspaceGitControlsProps = {
  */
 const WorkspaceGitControls: React.FC<WorkspaceGitControlsProps> = ({ conversation_id, workspace }) => {
   const { t } = useTranslation();
-  const { status, checkout, createWorktree } = useWorkspaceGit(conversation_id, workspace);
+  const { status, diff, checkout, createWorktree } = useWorkspaceGit(conversation_id, workspace);
   const [wtOpen, setWtOpen] = useState(false);
   const [wtBranch, setWtBranch] = useState('');
   const [creating, setCreating] = useState(false);
@@ -66,6 +66,17 @@ const WorkspaceGitControls: React.FC<WorkspaceGitControlsProps> = ({ conversatio
           onClick={() => setWtOpen(true)}
         />
       </Tooltip>
+      {(diff.added > 0 || diff.removed > 0) && (
+        <Tooltip content={t('conversation.git.diffTooltip')}>
+          <span
+            className='inline-flex items-center gap-4px text-12px font-mono px-6px py-2px rounded-full'
+            style={{ border: '1px solid var(--color-border-2)' }}
+          >
+            <span className='text-success'>+{diff.added.toLocaleString()}</span>
+            <span className='text-danger'>−{diff.removed.toLocaleString()}</span>
+          </span>
+        </Tooltip>
+      )}
 
       <Modal
         title={t('conversation.git.createWorktree')}

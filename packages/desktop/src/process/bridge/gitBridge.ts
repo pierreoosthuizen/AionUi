@@ -19,6 +19,7 @@
 
 import { execFile } from 'node:child_process';
 import { ipcBridge } from '@/common';
+import { sumNumstat } from '../utils/gitNumstat';
 import { computeWorktreePath } from '../utils/worktreePath';
 
 function git(workspace: string, args: string[]): Promise<string> {
@@ -75,6 +76,18 @@ export function initGitBridge(): void {
       return { ok: true };
     } catch (e) {
       return { ok: false, error: 'failed', message: e instanceof Error ? e.message : String(e) };
+    }
+  });
+
+  ipcBridge.git.diffStat.provider(async ({ workspace }) => {
+    try {
+      if (!workspace || !(await isRepo(workspace))) return { added: 0, removed: 0 };
+      // Working tree vs HEAD = staged + unstaged tracked changes.
+      // ponytail: untracked files not counted (git diff ignores them). Add a
+      // `ls-files --others` pass only if new-file totals need to show.
+      return sumNumstat(await git(workspace, ['diff', '--numstat', 'HEAD']));
+    } catch {
+      return { added: 0, removed: 0 };
     }
   });
 

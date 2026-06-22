@@ -46,15 +46,15 @@ refresh.
 
 ## Files
 
-| File | Role |
-| --- | --- |
-| `packages/desktop/src/renderer/hooks/mcp/useMcpRuntimeStatus.ts` | Fetch + aggregate; exports `McpRuntimeStatus` |
-| `packages/desktop/src/renderer/hooks/mcp/index.ts` | Barrel export |
-| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpManagement.tsx` | Wires the hook, passes per-server status |
-| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpServerItem.tsx` | Threads `runtimeStatus` through |
-| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpServerHeader.tsx` | Renders the badge + tooltip |
-| `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json` | `settings.mcpRuntimeStatusTooltip` |
-| `tests/unit/renderer/useMcpRuntimeStatus.dom.test.ts` | Aggregation + error-path tests |
+| File                                                                             | Role                                          |
+| -------------------------------------------------------------------------------- | --------------------------------------------- |
+| `packages/desktop/src/renderer/hooks/mcp/useMcpRuntimeStatus.ts`                 | Fetch + aggregate; exports `McpRuntimeStatus` |
+| `packages/desktop/src/renderer/hooks/mcp/index.ts`                               | Barrel export                                 |
+| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpManagement.tsx`   | Wires the hook, passes per-server status      |
+| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpServerItem.tsx`   | Threads `runtimeStatus` through               |
+| `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpServerHeader.tsx` | Renders the badge + tooltip                   |
+| `packages/desktop/src/renderer/services/i18n/locales/en-US/settings.json`        | `settings.mcpRuntimeStatusTooltip`            |
+| `tests/unit/renderer/useMcpRuntimeStatus.dom.test.ts`                            | Aggregation + error-path tests                |
 
 The status words reuse the existing `conversation.mcp.status.*` i18n keys (the
 same strings the in-chat popover uses).

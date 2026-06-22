@@ -433,6 +433,7 @@ export type I18nKey =
   | 'conversation.git.checkoutFailed'
   | 'conversation.git.checkoutSuccess'
   | 'conversation.git.createWorktree'
+  | 'conversation.git.diffTooltip'
   | 'conversation.git.dirtyTree'
   | 'conversation.git.worktreeBranchPlaceholder'
   | 'conversation.git.worktreeFailed'
