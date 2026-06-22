@@ -50,7 +50,7 @@ export function parseDescription(md: string): string {
   const fm = md.match(/^---\r?\n([\s\S]*?)\r?\n---/);
   if (!fm) return '';
   const lines = fm[1].split(/\r?\n/);
-  const idx = lines.findIndex((l) => /^description:/.test(l));
+  const idx = lines.findIndex((l) => l.startsWith('description:'));
   if (idx === -1) return '';
   const inline = lines[idx].replace(/^description:\s*/, '').trim();
   if (/^[>|][+-]?\d*$/.test(inline)) {
