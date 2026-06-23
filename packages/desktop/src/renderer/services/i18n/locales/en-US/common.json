@@ -111,5 +111,9 @@
   "unit": {
     "minute_short": "m",
     "second_short": "s"
+  },
+  "routeError": {
+    "title": "Something went wrong",
+    "description": "This view ran into an error. The rest of the app is still working — retry to reload it."
   }
 }
