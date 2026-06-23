@@ -4,11 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SkillGroups, SkillItem } from '@/renderer/hooks/agent/useLoadedSkills';
+import type { SkillGroups, SkillItem, SkillState } from '@/renderer/hooks/agent/useLoadedSkills';
 import { emitter } from '@/renderer/utils/emitter';
 import { Empty } from '@arco-design/web-react';
 import { Down, Right } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
+
+// ADR-0003 §5: a skill row carries `state`, so it renders a state glyph and the
+// click cycles enable-state instead of filling the sendbox. Glyph + colour per
+// state; the localized name is the hover title (stateLabels, passed from above).
+const STATE_GLYPH: Record<SkillState, { glyph: string; className: string }> = {
+  on: { glyph: '●', className: 'text-[rgb(var(--green-6))]' },
+  'name-only': { glyph: '◐', className: 'text-[rgb(var(--orange-6))]' },
+  'user-only': { glyph: '◑', className: 'text-[rgb(var(--arcoblue-6))]' },
+  off: { glyph: '○', className: 'text-t-tertiary' },
+};
 
 type GroupedItemListProps = {
   groups: SkillGroups;
@@ -24,6 +34,11 @@ type GroupedItemListProps = {
   /** Click a row to drop `/name ` into the sendbox (default true). MCP rows are
    *  read-only info, so they pass false. */
   clickToFill?: boolean;
+  /** Skills only: advance a row's enable-state on click (overrides clickToFill
+   *  when the item carries a `state`). */
+  onCycle?: (item: SkillItem) => void;
+  /** Skills only: localized label per state for the glyph's hover title. */
+  stateLabels?: Record<SkillState, string>;
 };
 
 function loadCollapsed(key: string): Set<string> {
@@ -35,21 +50,46 @@ function loadCollapsed(key: string): Set<string> {
   }
 }
 
-const ItemRow: React.FC<{ item: SkillItem; icon: React.ReactNode; prefix: string; clickToFill: boolean }> = ({
-  item,
-  icon,
-  prefix,
-  clickToFill,
-}) => (
-  <div
-    className={`flex items-center gap-8px pl-24px pr-10px py-7px rd-6px hover:bg-fill-2 text-13px text-t-primary ${clickToFill ? 'cursor-pointer' : 'cursor-default'}`}
-    title={item.description ? `${prefix}${item.name} — ${item.description}` : `${prefix}${item.name}`}
-    onClick={clickToFill ? () => emitter.emit('sendbox.fill', `${prefix}${item.name} `) : undefined}
-  >
-    <span className='shrink-0 text-t-secondary flex items-center'>{icon}</span>
-    <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{item.name}</span>
-  </div>
-);
+const ItemRow: React.FC<{
+  item: SkillItem;
+  icon: React.ReactNode;
+  prefix: string;
+  clickToFill: boolean;
+  onCycle?: (item: SkillItem) => void;
+  stateLabels?: Record<SkillState, string>;
+}> = ({ item, icon, prefix, clickToFill, onCycle, stateLabels }) => {
+  const isSkill = item.state !== undefined;
+  // Skills cycle on click (unless plugin-locked); everything else keeps the
+  // existing sendbox-fill behaviour. A skill row never fills the sendbox.
+  const clickable = isSkill ? !item.locked : clickToFill;
+  const handleClick = isSkill
+    ? item.locked
+      ? undefined
+      : () => onCycle?.(item)
+    : clickToFill
+      ? () => emitter.emit('sendbox.fill', `${prefix}${item.name} `)
+      : undefined;
+  const glyph = isSkill ? STATE_GLYPH[item.state as SkillState] : null;
+
+  return (
+    <div
+      className={`flex items-center gap-8px pl-24px pr-10px py-7px rd-6px hover:bg-fill-2 text-13px text-t-primary ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
+      title={item.description ? `${prefix}${item.name} — ${item.description}` : `${prefix}${item.name}`}
+      onClick={handleClick}
+    >
+      <span className='shrink-0 text-t-secondary flex items-center'>{icon}</span>
+      <span className='overflow-hidden text-ellipsis whitespace-nowrap flex-1'>{item.name}</span>
+      {glyph && (
+        <span
+          className={`shrink-0 text-12px leading-none ${glyph.className}`}
+          title={stateLabels?.[item.state as SkillState]}
+        >
+          {glyph.glyph}
+        </span>
+      )}
+    </div>
+  );
+};
 
 /**
  * Collapsible folder list shared by the Skills and Commands tabs: a "Global"
@@ -66,6 +106,8 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
   storageKey,
   itemPrefix = '/',
   clickToFill = true,
+  onCycle,
+  stateLabels,
 }) => {
   const { global, profiles } = groups;
   const [query, setQuery] = useState('');
@@ -143,6 +185,8 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
                       icon={icon}
                       prefix={itemPrefix}
                       clickToFill={clickToFill}
+                      onCycle={onCycle}
+                      stateLabels={stateLabels}
                     />
                   ))}
               </div>

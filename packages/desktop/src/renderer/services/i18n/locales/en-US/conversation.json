@@ -317,7 +317,16 @@
       "tab": "Skills",
       "search": "Search skills…",
       "empty": "No skills loaded",
-      "globalSection": "Global"
+      "globalSection": "Global",
+      "userSection": "User",
+      "projectSection": "Project",
+      "writeFailed": "Could not update skill — settings file unreadable",
+      "state": {
+        "on": "On",
+        "nameOnly": "Name only",
+        "userOnly": "User-invocable only",
+        "off": "Off"
+      }
     },
     "commands": {
       "tab": "Commands",
