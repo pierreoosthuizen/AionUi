@@ -8,6 +8,7 @@ import {
   useMcpConnection,
   useMcpModal,
   useMcpOAuth,
+  useMcpReconnect,
   useMcpRuntimeStatus,
   useMcpServerCRUD,
   useMcpServers,
@@ -53,6 +54,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     handleAuthRequired,
     handleAuthResolved
   );
+  const { reconnectingServers, handleReconnect } = useMcpReconnect(setMcpServers, handleTestMcpConnection);
   const {
     showMcpModal,
     editingMcpServer,
@@ -81,6 +83,18 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
       message.error(`${server.name}: ${result.error || t('settings.mcpOAuthLoginFailed') || 'Login failed'}`);
     },
     [handleTestMcpConnection, login, message, t]
+  );
+
+  const handleReconnectServer = React.useCallback(
+    async (server: IMcpServer) => {
+      const result = await handleReconnect(server);
+      if (result.success) {
+        message.success(`${server.name}: ${t('settings.mcpReconnectSuccess')}`);
+      } else {
+        message.error(`${server.name}: ${result.error ?? t('settings.mcpReconnectError')}`);
+      }
+    },
+    [handleReconnect, message, t]
   );
 
   const wrappedHandleAddMcpServer = React.useCallback(
@@ -220,12 +234,14 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
                 isTestingConnection={testingServers[server.id] || false}
                 oauthStatus={oauthStatus[server.id]}
                 isLoggingIn={loggingIn[server.id]}
+                isReconnecting={reconnectingServers[server.id] || false}
                 runtimeStatus={runtimeStatusFor(server)}
                 onToggleCollapse={() => toggleServerCollapse(server.id)}
                 onTestConnection={handleTestMcpConnection}
                 onEditServer={showEditMcpModal}
                 onDeleteServer={showDeleteConfirm}
                 onOAuthLogin={handleOAuthLogin}
+                onReconnect={handleReconnectServer}
               />
             ))
           )}

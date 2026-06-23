@@ -12,6 +12,7 @@ interface McpServerItemProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  isReconnecting?: boolean;
   runtimeStatus?: McpRuntimeStatus;
   /** Extension-contributed servers are read-only (no edit/delete) */
   isReadOnly?: boolean;
@@ -20,6 +21,7 @@ interface McpServerItemProps {
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
+  onReconnect?: (server: IMcpServer) => void;
 }
 
 const McpServerItem: React.FC<McpServerItemProps> = ({
@@ -28,6 +30,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
+  isReconnecting,
   runtimeStatus,
   isReadOnly,
   onToggleCollapse,
@@ -35,6 +38,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   onEditServer,
   onDeleteServer,
   onOAuthLogin,
+  onReconnect,
 }) => {
   return (
     <Collapse
@@ -50,12 +54,14 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
             isTestingConnection={isTestingConnection}
             oauthStatus={oauthStatus}
             isLoggingIn={isLoggingIn}
+            isReconnecting={isReconnecting}
             runtimeStatus={runtimeStatus}
             isReadOnly={isReadOnly}
             onTestConnection={onTestConnection}
             onEditServer={onEditServer}
             onDeleteServer={onDeleteServer}
             onOAuthLogin={onOAuthLogin}
+            onReconnect={onReconnect}
           />
         }
         name='1'

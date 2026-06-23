@@ -1,6 +1,17 @@
 import type { IConversationMcpStatusKind, IMcpServer } from '@/common/config/storage';
 import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
-import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
+import {
+  Check,
+  CloseSmall,
+  Info,
+  LoadingOne,
+  Refresh,
+  Write,
+  DeleteFour,
+  SettingOne,
+  Login,
+  Reload,
+} from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
@@ -13,6 +24,8 @@ interface McpServerHeaderProps {
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
+  /** Whether a reconnect is in progress for this server. */
+  isReconnecting?: boolean;
   /** Aggregated load result across active conversations (in-chat semantics). */
   runtimeStatus?: McpRuntimeStatus;
   /** Extension-contributed servers are read-only */
@@ -21,6 +34,7 @@ interface McpServerHeaderProps {
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onOAuthLogin?: (server: IMcpServer) => void;
+  onReconnect?: (server: IMcpServer) => void;
 }
 
 const RUNTIME_STATUS_CLASS_NAME: Record<IConversationMcpStatusKind, string> = {
@@ -156,12 +170,14 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   isTestingConnection,
   oauthStatus,
   isLoggingIn,
+  isReconnecting,
   runtimeStatus,
   isReadOnly,
   onTestConnection,
   onEditServer,
   onDeleteServer,
   onOAuthLogin,
+  onReconnect,
 }) => {
   const { t } = useTranslation();
 
@@ -232,6 +248,18 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
               trigger='hover'
               droplist={
                 <Menu>
+                  {onReconnect && (
+                    <Menu.Item
+                      key='reconnect'
+                      disabled={isReconnecting}
+                      onClick={() => !isReconnecting && onReconnect(server)}
+                    >
+                      <div className='flex items-center gap-2'>
+                        <Reload size={'14'} />
+                        {isReconnecting ? t('settings.mcpReconnect') + '…' : t('settings.mcpReconnect')}
+                      </div>
+                    </Menu.Item>
+                  )}
                   <Menu.Item key='edit' onClick={() => onEditServer(server)}>
                     <div className='flex items-center gap-2'>
                       <Write size={'14'} />
