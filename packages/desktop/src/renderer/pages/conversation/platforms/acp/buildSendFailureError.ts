@@ -11,7 +11,8 @@ import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 const isConversationBusyError = (error: unknown): boolean => {
   if (!isBackendHttpError(error)) return false;
   if (error.status !== 409 || error.code !== 'CONFLICT') return false;
-  return error.backendMessage.toLowerCase().includes('already processing');
+  const msg = error.backendMessage.toLowerCase();
+  return msg.includes('already processing') || msg.includes('already running');
 };
 
 const isAgentDisconnectedError = (error: unknown): boolean => {

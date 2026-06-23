@@ -92,6 +92,24 @@ describe('buildSendFailureError', () => {
     });
   });
 
+  it('classifies 409 already-running as AIONUI_CONVERSATION_BUSY (wait, not retry)', () => {
+    // Verifies the broader "already running" 409 variant also maps to the busy code,
+    // not AIONUI_INTERNAL_ERROR.
+    const err = httpError(409, 'CONFLICT', 'Conflict: Conversation is already running a message');
+
+    const result = buildSendFailureError(err, 'Conflict: Conversation is already running a message');
+
+    expect(result).toEqual({
+      message: 'Conflict: Conversation is already running a message',
+      code: 'AIONUI_CONVERSATION_BUSY',
+      ownership: 'aionui',
+      detail: 'Conflict: Conversation is already running a message',
+      retryable: false,
+      feedback_recommended: false,
+      resolution: { kind: 'wait_for_current_response' },
+    });
+  });
+
   it('falls back to AIONUI_INTERNAL_ERROR for non-conflict 409 (different message)', () => {
     const err = httpError(409, 'CONFLICT', 'Conflict: WebSocket not connected; nothing to cancel');
 
