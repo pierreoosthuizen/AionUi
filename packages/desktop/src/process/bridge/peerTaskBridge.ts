@@ -13,6 +13,7 @@
 import { ipcBridge } from '@/common';
 import { addTask, listTasks, removeTask, updateTask } from '../services/peerTaskStore';
 import { fireNow, listActivePeers } from '../services/peerTaskScheduler';
+import { getManagedToId } from '../utils/peerAutoPickup';
 
 export function initPeerTaskBridge(): void {
   ipcBridge.peerTask.list.provider(async () => listTasks());
@@ -23,4 +24,5 @@ export function initPeerTaskBridge(): void {
   });
   ipcBridge.peerTask.runNow.provider(async ({ id }) => fireNow(id));
   ipcBridge.peerTask.listActivePeers.provider(async () => listActivePeers());
+  ipcBridge.peerBroker.getToId.provider(async ({ conversationId }) => getManagedToId(conversationId));
 }

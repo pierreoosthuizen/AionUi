@@ -207,6 +207,16 @@ async function tick(): Promise<void> {
   }
 }
 
+/**
+ * Return the live broker peer id (to_id) for a conversation, or undefined when
+ * the conversation has no durable inbox registered yet (idle / not yet resolved).
+ * The returned id is the churning broker-assigned value — it changes each time
+ * peerAutoPickup re-registers the peer (e.g. after a reconnect).
+ */
+export function getManagedToId(conversationId: string): string | undefined {
+  return managed.get(conversationId);
+}
+
 /** Start the watcher. Safe to call once after the backend is ready. */
 export function startPeerAutoPickup(): void {
   if (timer) return;
