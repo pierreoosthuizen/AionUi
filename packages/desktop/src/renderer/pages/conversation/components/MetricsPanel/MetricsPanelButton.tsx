@@ -25,7 +25,7 @@ const MetricsPanelButton: React.FC<Props> = ({ open, onClick }) => {
   const label = open ? t('metrics.panel.hide') : t('metrics.panel.show');
 
   return (
-    <div className='absolute bottom-8px right-0px z-30 pointer-events-none'>
+    <div className='absolute bottom-12px right-16px z-30 pointer-events-none'>
       <Tooltip content={label} position='left'>
         <Button
           type={open ? 'primary' : 'secondary'}

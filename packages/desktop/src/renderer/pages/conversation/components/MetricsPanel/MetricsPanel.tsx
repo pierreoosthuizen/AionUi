@@ -5,13 +5,14 @@
  */
 
 import type { ChartSeries, MetricsHistory } from '@/common/types/metricsPanel';
-import { Button, Tabs } from '@arco-design/web-react';
+import { Button } from '@arco-design/web-react';
 import { Close, PreviewClose, PreviewOpen } from '@icon-park/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import classNames from 'classnames';
+import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import BarChart from './BarChart';
 
-const TabPane = Tabs.TabPane;
+type TabKey = 'usage' | 'peers';
 
 /** localStorage key for persisting the panel height. */
 const HEIGHT_STORAGE_KEY = 'metrics-panel-height-px';
@@ -84,6 +85,7 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
   const { t } = useTranslation();
   const [height, setHeight] = useState<number>(readPersistedHeight);
   const [hiddenCharts, setHiddenCharts] = useState<HiddenCharts>(new Set());
+  const [activeTab, setActiveTab] = useState<TabKey>('usage');
   const handleRef = useRef<HTMLDivElement>(null);
 
   // ------------------------------------------------------------------
@@ -136,19 +138,41 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
 
   if (!visible) return null;
 
-  // Helper: render a chart slot (visible or collapsed)
+  // Helper: render a chart slot (visible or collapsed). When visible the chart
+  // fills the slot height (flex-1) so it grows/shrinks with the panel.
   const renderChartSlot = (key: string, title: string, series: ChartSeries) => {
     const hidden = hiddenCharts.has(key);
     return (
-      <div key={key} className='flex-1 min-w-0 flex flex-col gap-4px'>
-        <div className='flex items-center justify-between gap-4px'>
-          {hidden ? <span className='text-11px text-t-tertiary truncate'>{title}</span> : null}
-          <ChartToggleButton chartKey={key} hidden={hidden} onToggle={toggleChart} />
-        </div>
-        {!hidden && <BarChart series={series} title={title} />}
+      <div key={key} className='flex-1 min-w-0 min-h-0 flex flex-col gap-4px'>
+        {hidden ? (
+          <div className='flex items-center justify-between gap-4px'>
+            <span className='text-11px text-t-tertiary truncate'>{title}</span>
+            <ChartToggleButton chartKey={key} hidden={hidden} onToggle={toggleChart} />
+          </div>
+        ) : (
+          <BarChart
+            series={series}
+            title={title}
+            toggle={<ChartToggleButton chartKey={key} hidden={hidden} onToggle={toggleChart} />}
+          />
+        )}
       </div>
     );
   };
+
+  const tabBtn = (key: TabKey, label: string) => (
+    <Button
+      type='text'
+      size='small'
+      onClick={() => setActiveTab(key)}
+      className={classNames(
+        '!px-4px !h-28px !rd-0 b-b-2px b-b-solid transition-colors',
+        activeTab === key ? '!text-t-primary b-b-aou-6 !font-medium' : '!text-t-tertiary b-b-transparent'
+      )}
+    >
+      {label}
+    </Button>
+  );
 
   return (
     <div
@@ -181,22 +205,25 @@ const MetricsPanel: React.FC<Props> = ({ history, visible, onRequestHide }) => {
         />
       </div>
 
-      {/* Tabs */}
-      <div className='flex-1 min-h-0 overflow-hidden px-12px pb-8px'>
-        <Tabs defaultActiveTab='usage' size='small' className='h-full'>
-          <TabPane key='usage' title={t('metrics.tabs.usage')}>
-            <div className='flex flex-row gap-12px pt-8px h-full'>
-              {renderChartSlot('sessionUsage', t('metrics.charts.sessionUsage'), history.sessionUsage)}
-              {renderChartSlot('weeklyUsage', t('metrics.charts.weeklyUsage'), history.weeklyUsage)}
-            </div>
-          </TabPane>
-          <TabPane key='peers' title={t('metrics.tabs.peers')}>
-            <div className='flex flex-row gap-12px pt-8px h-full'>
-              {renderChartSlot('openPeersWeek', t('metrics.charts.openPeersWeek'), history.openPeersWeek)}
-              {renderChartSlot('activePeers5min', t('metrics.charts.activePeers5min'), history.activePeers5min)}
-            </div>
-          </TabPane>
-        </Tabs>
+      {/* Tab strip */}
+      <div className='flex items-center gap-12px px-12px b-b b-b-solid b-line-2 shrink-0'>
+        {tabBtn('usage', t('metrics.tabs.usage'))}
+        {tabBtn('peers', t('metrics.tabs.peers'))}
+      </div>
+
+      {/* Tab content — fills remaining panel height so charts grow on resize */}
+      <div className='flex-1 min-h-0 flex flex-row gap-12px px-12px pt-8px pb-10px'>
+        {activeTab === 'usage' ? (
+          <>
+            {renderChartSlot('sessionUsage', t('metrics.charts.sessionUsage'), history.sessionUsage)}
+            {renderChartSlot('weeklyUsage', t('metrics.charts.weeklyUsage'), history.weeklyUsage)}
+          </>
+        ) : (
+          <>
+            {renderChartSlot('openPeersWeek', t('metrics.charts.openPeersWeek'), history.openPeersWeek)}
+            {renderChartSlot('activePeers5min', t('metrics.charts.activePeers5min'), history.activePeers5min)}
+          </>
+        )}
       </div>
     </div>
   );

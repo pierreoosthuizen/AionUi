@@ -95,8 +95,6 @@ const AcpChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
-          {/* Metrics panel — sits between the message list and the send box */}
-          <MetricsPanel history={metricsHistory} visible={metricsOpen} onRequestHide={() => setMetricsOpen(false)} />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}
@@ -109,6 +107,9 @@ const AcpChat: React.FC<{
               teamRuntime={teamRuntime}
             ></AcpSendBox>
           )}
+          {/* Metrics panel — slides up at the very bottom, pushing the whole chat
+              pane (messages + send box + footer) up as one unit. */}
+          <MetricsPanel history={metricsHistory} visible={metricsOpen} onRequestHide={() => setMetricsOpen(false)} />
           {/* Trigger button — absolutely positioned bottom-right of this column */}
           <MetricsPanelButton open={metricsOpen} onClick={() => setMetricsOpen((v) => !v)} />
         </div>
