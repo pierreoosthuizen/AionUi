@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { fs } from '@/common/adapter/ipcBridge';
+import { cycleSkillState, loadSkillOverrides, stateFromLiteral, type SkillState } from './skillOverrides';
+
+export type { SkillState };
 
 /**
  * Resolve the skills the embedded Claude Code agent actually loaded for a
@@ -24,13 +27,34 @@ export const CLAUDE_DIR = '/Users/pierreo/.claude';
 const USER_SKILLS_DIR = `${CLAUDE_DIR}/skills`;
 const profileSkillsDir = (profile: string): string => `${CLAUDE_DIR}/profiles/skills/${profile}`;
 
-export type SkillItem = { name: string; description: string };
+// ADR-0003 §5: optional state/location/locked. Skills carry them; Commands/MCP
+// rows leave them undefined and render exactly as before (no fork of ItemRow).
+export type SkillLocation = 'user' | 'project';
+export type SkillItem = {
+  name: string;
+  description: string;
+  /** Present only for skill rows → ItemRow renders a glyph + click-cycles. */
+  state?: SkillState;
+  location?: SkillLocation;
+  /** Plugin-origin skills are read-only; cycle hard-skips them (v1: never set —
+   *  plugin skills are not scanned, so they're simply absent from the tab). */
+  locked?: boolean;
+};
 
 export type SkillGroups = {
   /** User-global + workspace-local skills (always active). */
   global: SkillItem[];
   /** One entry per applied profile, in name order. */
   profiles: Array<{ name: string; skills: SkillItem[] }>;
+};
+
+/** ADR-0003 §3: skills grouped by file-path root (user / project), plus the
+ *  click-cycle that persists state to `.claude/settings.local.json`. */
+export type LoadedSkills = {
+  user: SkillItem[];
+  project: SkillItem[];
+  /** Advance a skill's state and persist it; rejects if the write is refused. */
+  cycle: (item: SkillItem) => Promise<void>;
 };
 
 // The backend `/api/skills/scan` envelope is `{ skills: [...] }`; the bridge's
@@ -108,8 +132,11 @@ function scanProfile(profile: string): Promise<SkillItem[]> {
   return scan;
 }
 
-export function useLoadedSkills(workspace?: string): SkillGroups {
-  const [groups, setGroups] = useState<SkillGroups>({ global: [], profiles: [] });
+export function useLoadedSkills(workspace?: string): LoadedSkills {
+  // Raw scan (origin-tagged, no state yet); state is layered on from overrides.
+  const [raw, setRaw] = useState<{ user: SkillItem[]; project: SkillItem[] }>({ user: [], project: [] });
+  const [overrides, setOverrides] = useState<Record<string, string>>({});
+
   useEffect(() => {
     let alive = true;
     userScan ??= scanSkills(USER_SKILLS_DIR);
@@ -117,21 +144,57 @@ export function useLoadedSkills(workspace?: string): SkillGroups {
     const appliedScan = workspace ? readAppliedProfiles(workspace) : Promise.resolve<string[]>([]);
     void (async () => {
       const [user, project, applied] = await Promise.all([userScan, projectScan, appliedScan]);
-      const profileEntries = await Promise.all(
-        applied.toSorted().map(async (name) => ({ name, skills: (await scanProfile(name)).toSorted(byName) }))
-      );
+      const profileSkills = (await Promise.all(applied.toSorted().map(scanProfile))).flat();
       if (!alive) return;
-      // Project-local wins over user-global on name collision.
-      const merged = new Map<string, SkillItem>();
-      for (const s of [...project, ...user]) if (!merged.has(s.name)) merged.set(s.name, s);
-      setGroups({
-        global: Array.from(merged.values()).toSorted(byName),
-        profiles: profileEntries.filter((p) => p.skills.length > 0),
+      // ADR-0003 §3: group by file-path root. user + profile dirs both live under
+      // ~/.claude → the user bucket; workspace/.claude/skills → the project bucket.
+      // Project still wins on name collision, so a shadowed user skill drops out.
+      // PINNED (ADR-0003 §3 amendment): we classify by SCAN ORIGIN, not by parsing
+      // each skill's path. Safe because profileSkillsDir is hardcoded under
+      // ~/.claude → profile skills are always User. If a profile path ever resolves
+      // in-workspace, switch this to path-root classification (s.path startsWith
+      // CLAUDE_DIR ? user : project).
+      const projectNames = new Set(project.map((s) => s.name));
+      const userMerged = new Map<string, SkillItem>();
+      for (const s of [...user, ...profileSkills])
+        if (!projectNames.has(s.name) && !userMerged.has(s.name)) userMerged.set(s.name, s);
+      const projectMerged = new Map<string, SkillItem>();
+      for (const s of project) if (!projectMerged.has(s.name)) projectMerged.set(s.name, s);
+      setRaw({
+        user: Array.from(userMerged.values()).toSorted(byName),
+        project: Array.from(projectMerged.values()).toSorted(byName),
       });
     })();
     return () => {
       alive = false;
     };
   }, [workspace]);
-  return groups;
+
+  // Persisted enable-states, reloaded after every cycle so the row reflects disk.
+  const reloadOverrides = useCallback(async () => {
+    setOverrides(workspace ? await loadSkillOverrides(workspace) : {});
+  }, [workspace]);
+  useEffect(() => {
+    void reloadOverrides();
+  }, [reloadOverrides]);
+
+  const withState = useCallback(
+    (items: SkillItem[], location: SkillLocation): SkillItem[] =>
+      items.map((s) => ({ ...s, location, state: stateFromLiteral(overrides[s.name]) })),
+    [overrides]
+  );
+  const user = useMemo(() => withState(raw.user, 'user'), [raw.user, withState]);
+  const project = useMemo(() => withState(raw.project, 'project'), [raw.project, withState]);
+
+  const cycle = useCallback(
+    async (item: SkillItem) => {
+      // No workspace → no write target; locked (plugin) → read-only; no state → not a skill row.
+      if (!workspace || item.locked || !item.state) return;
+      await cycleSkillState(workspace, item.name, item.state);
+      await reloadOverrides();
+    },
+    [workspace, reloadOverrides]
+  );
+
+  return { user, project, cycle };
 }
