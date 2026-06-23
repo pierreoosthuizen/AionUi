@@ -48,9 +48,9 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildSendFailureError } from './buildSendFailureError';
+import { buildSendFailureError, isConversationBusyError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -240,6 +240,12 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
   const runtimeView = useConversationRuntimeView(conversation_id);
 
+  // G2 — retry pattern: ref is set after useConversationCommandQueue so executeCommand
+  // can call enqueue without a circular hook dependency. Mirrors peerAutoPickup.ts:205
+  // which deletes from the injected set on failure so the next tick re-attempts.
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  const busyRetryEnqueueRef = useRef<(item: { input: string; files: string[] }) => void>(() => {});
+
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
@@ -331,6 +337,18 @@ const AcpSendBox: React.FC<{
           throw error;
         }
 
+        // G1 — 409 BUSY: re-enqueue silently instead of showing an error card.
+        // G3 — turn freed: useConversationCommandQueue fires when canExecute transitions
+        // true (executionGate.hydrated && executionGate.canExecute), which happens on
+        // the finish/error stream events that set running=false in useAcpMessage.
+        // Max 1 retry per send path: queue cap is enforced by useConversationCommandQueue.
+        if (isConversationBusyError(error)) {
+          busyRetryEnqueueRef.current({ input, files });
+          resetState();
+          setAiProcessing(false);
+          return;
+        }
+
         const isAuthError =
           errorMsg.includes('[ACP-AUTH-') ||
           errorMsg.includes('authentication failed') ||
@@ -415,6 +433,11 @@ Please check your local CLI tool authentication status`,
     teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
+
+  // Wire enqueue into the ref so executeCommand can re-enqueue on BUSY without
+  // a circular hook dependency. Assigned in render body — safe because enqueue
+  // is a stable callback from useConversationCommandQueue.
+  busyRetryEnqueueRef.current = enqueue;
 
   const onSendHandler = async (message: string) => {
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
