@@ -90,7 +90,16 @@
     "restartPeerConfirmContent": "This will reset the peer process while keeping the same conversation. No context will carry over.",
     "restartPeerSuccess": "Peer restarted successfully",
     "restartPeerNotFound": "Peer is not currently active",
-    "restartPeerError": "Failed to restart peer"
+    "restartPeerError": "Failed to restart peer",
+    "startGroupPeers": "Start all peers",
+    "restartGroupPeers": "Restart all peers",
+    "killGroupPeers": "Kill all peers",
+    "killGroupPeersConfirmTitle": "Kill all peers in this group?",
+    "killGroupPeersConfirmContent": "This will unregister all active peers in the \"{{group}}\" group from the broker. Peers that are not running are unaffected.",
+    "groupPeersStartSuccess": "Started {{count}} peer(s) in group \"{{group}}\"",
+    "groupPeersRestartSuccess": "Restarted {{count}} peer(s) in group \"{{group}}\"",
+    "groupPeersKillSuccess": "Killed {{count}} peer(s) in group \"{{group}}\"",
+    "groupPeersActionError": "Action failed: {{errors}}"
   },
   "historySearch": {
     "tooltip": "Search messages",
