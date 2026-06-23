@@ -24,6 +24,7 @@ import {
   MessageOne,
   MoreOne,
   Pushpin,
+  Reload,
 } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
@@ -61,6 +62,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     groups,
     onMoveToGroup,
     onNewGroup,
+    onRestartPeer,
+    peerRestartInFlight = false,
   } = props;
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
@@ -273,6 +276,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       else onMoveToGroup?.(conversation, target);
                       return;
                     }
+                    if (key === 'restart-peer') {
+                      onRestartPeer?.(conversation);
+                      return;
+                    }
                     if (key === 'delete') {
                       onDelete(conversation.id);
                     }
@@ -328,6 +335,14 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                         </div>
                       </Menu.Item>
                     </Menu.SubMenu>
+                  )}
+                  {onRestartPeer && peerIdentity && (
+                    <Menu.Item key='restart-peer' disabled={peerRestartInFlight}>
+                      <div className='flex items-center gap-8px'>
+                        <Reload theme='outline' size='14' />
+                        <span>{t('conversation.history.restartPeer')}</span>
+                      </div>
+                    </Menu.Item>
                   )}
                   <Menu.Item key='delete'>
                     <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>

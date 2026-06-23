@@ -1445,6 +1445,16 @@ export const peerBroker = {
 };
 
 // ---------------------------------------------------------------------------
+// Peer restart — native main-process operation (broker unregister + re-register).
+// ---------------------------------------------------------------------------
+
+export type IPeerRestartResult = { success: true; status: 'reset' | 'not_found' } | { success: false; msg: string };
+
+export const peer = {
+  restart: bridge.buildProvider<IPeerRestartResult, { conversation_id: string }>('peer:restart'),
+};
+
+// ---------------------------------------------------------------------------
 // Shared types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 

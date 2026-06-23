@@ -69,6 +69,10 @@ export type ConversationRowProps = {
   onNewGroup?: (conversation: TChatConversation) => void;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
+  /** Restart the durable broker peer for a peer conversation, keeping the same conversation_id. Omit to hide the menu item. */
+  onRestartPeer?: (conversation: TChatConversation) => void;
+  /** True while a peer restart is in-flight for this conversation (disables the menu item). */
+  peerRestartInFlight?: boolean;
 };
 
 export type WorkspaceGroupedHistoryProps = {

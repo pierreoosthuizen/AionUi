@@ -10,7 +10,7 @@ import { refreshConversationCache } from '@/renderer/pages/conversation/utils/co
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -231,6 +231,49 @@ export const useConversationActions = ({
     setDropdownVisibleId(conversation.id);
   }, []);
 
+  // Peer restart — tracks which conversation_id has a restart in-flight so the
+  // menu item stays disabled until the IPC round-trip completes.
+  const peerRestartInFlightRef = useRef<Set<string>>(new Set());
+  const [peerRestartInFlightId, setPeerRestartInFlightId] = useState<string | null>(null);
+
+  const handleRestartPeer = useCallback(
+    (conversation: TChatConversation) => {
+      Modal.confirm({
+        title: t('conversation.history.restartPeerConfirmTitle'),
+        content: t('conversation.history.restartPeerConfirmContent'),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        onOk: async () => {
+          if (peerRestartInFlightRef.current.has(conversation.id)) return;
+          peerRestartInFlightRef.current.add(conversation.id);
+          setPeerRestartInFlightId(conversation.id);
+          try {
+            const result = await ipcBridge.peer.restart.invoke({ conversation_id: conversation.id });
+            if (result.success) {
+              if (result.status === 'reset') {
+                Message.success(t('conversation.history.restartPeerSuccess'));
+              } else {
+                Message.info(t('conversation.history.restartPeerNotFound'));
+              }
+            } else {
+              Message.error(t('conversation.history.restartPeerError'));
+            }
+          } catch (error) {
+            console.error('[useConversationActions] peer restart failed:', error);
+            Message.error(t('conversation.history.restartPeerError'));
+          } finally {
+            peerRestartInFlightRef.current.delete(conversation.id);
+            setPeerRestartInFlightId(null);
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [t]
+  );
+
   /**
    * Remove project state — rendered via AionModal in the GroupedHistory component.
    * Uses project's design system: AionModal component with danger-styled action button.
@@ -291,6 +334,8 @@ export const useConversationActions = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleRestartPeer,
+    peerRestartInFlightId,
     handleRemoveProject,
     removeProjectTarget,
     removeProjectLoading,
