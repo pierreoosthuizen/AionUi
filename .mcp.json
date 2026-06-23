@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "jcodemuncher-mcp": {
+      "type": "stdio",
+      "command": "/Users/pierreo/.local/bin/jcodemunch-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}

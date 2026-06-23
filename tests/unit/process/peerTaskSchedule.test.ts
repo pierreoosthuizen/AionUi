@@ -35,13 +35,17 @@ describe('computeNextRun', () => {
   /** weekdays skips Saturday/Sunday. */
   it('skips the weekend for weekdays frequency', () => {
     // Fri 2026-06-26 10:00 → next weekday slot is Mon 2026-06-29 08:00
-    expect(computeNextRun({ frequency: 'weekdays', time: '08:00' }, at(2026, 5, 26, 10, 0))).toBe(at(2026, 5, 29, 8, 0));
+    expect(computeNextRun({ frequency: 'weekdays', time: '08:00' }, at(2026, 5, 26, 10, 0))).toBe(
+      at(2026, 5, 29, 8, 0)
+    );
   });
 
   /** weekly lands on the configured weekday. */
   it('lands weekly on the target weekday', () => {
     // From Mon 2026-06-22, next WED at 07:15 is 2026-06-24
-    expect(computeNextRun({ frequency: 'weekly', weekday: 'WED', time: '07:15' }, at(2026, 5, 22, 12, 0))).toBe(at(2026, 5, 24, 7, 15));
+    expect(computeNextRun({ frequency: 'weekly', weekday: 'WED', time: '07:15' }, at(2026, 5, 22, 12, 0))).toBe(
+      at(2026, 5, 24, 7, 15)
+    );
   });
 });
 
