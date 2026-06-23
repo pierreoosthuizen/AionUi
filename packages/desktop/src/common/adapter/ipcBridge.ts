@@ -1435,6 +1435,16 @@ export const peerTask = {
 };
 
 // ---------------------------------------------------------------------------
+// Peer broker — live routing ids from peerAutoPickup (REQ-008).
+// Maps conversationId → the churning broker to_id currently assigned by
+// peerAutoPickup; undefined when the peer has no active durable inbox.
+// ---------------------------------------------------------------------------
+
+export const peerBroker = {
+  getToId: bridge.buildProvider<string | undefined, { conversationId: string }>('peer-broker:get-to-id'),
+};
+
+// ---------------------------------------------------------------------------
 // Shared types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 

@@ -8,6 +8,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { usePeerIdentity } from '@/renderer/hooks/agent/usePeerIdentity';
+import { usePeerToId } from '@/renderer/hooks/agent/usePeerToId';
 import { CHAT_INPUT_ACCENT_MAP } from '@/common/config/chatInputAccent';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
@@ -64,6 +65,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const { t } = useTranslation();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const peerIdentity = usePeerIdentity((conversation.extra as { workspace?: string } | undefined)?.workspace);
+  const peerToId = usePeerToId(peerIdentity ? conversation.id : undefined);
   const isPinned = isConversationPinned(conversation);
   const currentGroupId = getConversationGroupId(conversation);
   const cronStatus = getJobStatus(conversation.id);
@@ -209,6 +211,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
               {peerIdentity ? (
                 // Peer conversation: the peer alias IS the name (coloured dot +
                 // alias), replacing the auto-generated conversation title.
+                // When the broker has resolved a live to_id, show it in brackets.
                 <>
                   <span
                     className='w-8px h-8px rd-999px flex-shrink-0'
@@ -220,6 +223,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   >
                     {peerIdentity.alias}
                   </span>
+                  {peerToId && (
+                    <span className='flex-shrink-0 text-t-secondary text-12px font-normal lh-24px'>[{peerToId}]</span>
+                  )}
                 </>
               ) : (
                 <span className='block overflow-hidden text-ellipsis whitespace-nowrap min-w-0'>
