@@ -143,7 +143,7 @@ export const shell = {
 
 export const git = {
   status: bridge.buildProvider<
-    { isRepo: boolean; currentBranch: string | null; branches: string[] },
+    { isRepo: boolean; currentBranch: string | null; branches: string[]; isWorktree: boolean; worktreeName: string },
     { workspace: string }
   >('git:status'),
   checkout: bridge.buildProvider<

@@ -1,5 +1,6 @@
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import { usePeerIdentity } from '@/renderer/hooks/agent/usePeerIdentity';
+import { useWorktreeStatus } from '@/renderer/hooks/git/useWorktreeStatus';
 import { CHAT_INPUT_ACCENT_MAP } from '@/common/config/chatInputAccent';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
@@ -24,9 +25,10 @@ import {
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
-import { Layout as ArcoLayout } from '@arco-design/web-react';
+import { Layout as ArcoLayout, Tag, Tooltip } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
 
@@ -62,11 +64,14 @@ const ChatLayout: React.FC<{
   /** Optional override for the leading icon shown before the title (e.g. team Peoples icon) */
   headerLeading?: React.ReactNode;
 }> = (props) => {
+  const { t } = useTranslation('conversation');
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
   // Header identity: when the workspace maps to a claude-peers entry, show the
   // peer alias (in its colour) instead of the auto-generated conversation title.
   const headerPeerIdentity = usePeerIdentity(workspacePath);
   const headerPeerColour = headerPeerIdentity ? CHAT_INPUT_ACCENT_MAP[headerPeerIdentity.colour].swatch : undefined;
+  // Worktree badge: show branch name when this conversation lives in a git linked worktree.
+  const { isWorktree, worktreeName } = useWorktreeStatus(workspacePath);
   const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
@@ -194,7 +199,7 @@ const ChatLayout: React.FC<{
         'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
       )}
     >
-      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
+      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-8px'>
         <ChatTitleEditor
           editingTitle={editingTitle}
           titleDraft={titleDraft}
@@ -233,6 +238,18 @@ const ChatLayout: React.FC<{
             )
           }
         />
+        {isWorktree && worktreeName && (
+          <Tooltip content={t('git.worktreeBadgeTooltip', { branch: worktreeName })} mini>
+            <Tag
+              size='small'
+              color='arcoblue'
+              className='shrink-0 max-w-120px truncate cursor-default'
+              data-testid='worktree-badge'
+            >
+              {worktreeName}
+            </Tag>
+          </Tooltip>
+        )}
       </FlexFullContainer>
       <div className='flex items-center gap-12px shrink-0'>
         {props.headerExtra}

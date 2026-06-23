@@ -437,6 +437,7 @@ export type I18nKey =
   | 'conversation.git.createWorktree'
   | 'conversation.git.diffTooltip'
   | 'conversation.git.dirtyTree'
+  | 'conversation.git.worktreeBadgeTooltip'
   | 'conversation.git.worktreeBranchPlaceholder'
   | 'conversation.git.worktreeFailed'
   | 'conversation.git.worktreeHint'
