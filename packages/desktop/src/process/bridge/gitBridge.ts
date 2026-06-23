@@ -21,6 +21,7 @@ import { execFile } from 'node:child_process';
 import { ipcBridge } from '@/common';
 import { sumNumstat } from '../utils/gitNumstat';
 import { computeWorktreePath } from '../utils/worktreePath';
+import { isWorktreeByPaths } from '../utils/worktreeDetect';
 
 function git(workspace: string, args: string[]): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -54,14 +55,29 @@ async function branchExists(workspace: string, branch: string): Promise<boolean>
 export function initGitBridge(): void {
   ipcBridge.git.status.provider(async ({ workspace }) => {
     if (!workspace || !(await isRepo(workspace))) {
-      return { isRepo: false, currentBranch: null, branches: [] };
+      return { isRepo: false, currentBranch: null, branches: [], isWorktree: false, worktreeName: '' };
     }
     const currentBranch = (await git(workspace, ['branch', '--show-current'])).trim() || null;
     const branches = (await git(workspace, ['for-each-ref', '--format=%(refname:short)', 'refs/heads']))
       .split('\n')
       .map((b) => b.trim())
       .filter(Boolean);
-    return { isRepo: true, currentBranch, branches };
+
+    // Detect linked worktree: git-dir ≠ git-common-dir.
+    let isWorktree = false;
+    let worktreeName = '';
+    try {
+      const gitDir = (await git(workspace, ['rev-parse', '--git-dir'])).trim();
+      const commonDir = (await git(workspace, ['rev-parse', '--git-common-dir'])).trim();
+      isWorktree = isWorktreeByPaths(gitDir, commonDir);
+      if (isWorktree) {
+        worktreeName = currentBranch ?? '';
+      }
+    } catch {
+      // Non-fatal: leave isWorktree false if git plumbing fails.
+    }
+
+    return { isRepo: true, currentBranch, branches, isWorktree, worktreeName };
   });
 
   ipcBridge.git.checkout.provider(async ({ workspace, branch }) => {
