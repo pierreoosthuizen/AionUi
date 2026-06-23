@@ -237,3 +237,21 @@ export function stopPeerAutoPickup(): void {
     managed.delete(convId);
   }
 }
+
+/**
+ * Reset-in-place: unregister the durable broker peer for the given conversation
+ * and clear it from the managed map. The auto-pickup watcher will re-register a
+ * fresh peer on its next tick — preserving conversation_id / managed_key while
+ * giving the peer process a clean slate (no context carry-over).
+ *
+ * Returns 'reset' if the peer was found and cleared, 'not_found' if the
+ * conversation had no durable inbox registered.
+ */
+export async function resetManagedPeer(conversationId: string): Promise<{ status: 'reset' | 'not_found' }> {
+  const peerId = managed.get(conversationId);
+  if (!peerId) return { status: 'not_found' };
+  await brokerPost('/unregister', { id: peerId });
+  managed.delete(conversationId);
+  console.info(`[AionUi] peer restart: unregistered managed peer for conversation ${conversationId}`);
+  return { status: 'reset' };
+}

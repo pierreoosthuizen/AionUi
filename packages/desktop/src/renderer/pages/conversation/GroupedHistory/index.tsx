@@ -152,6 +152,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleRestartPeer,
+    peerRestartInFlightId,
   } = useConversationActions({
     batchMode,
     onSessionClick,
@@ -274,6 +276,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       groups,
       onMoveToGroup: handleMoveToGroup,
       onNewGroup: handleNewGroup,
+      onRestartPeer: handleRestartPeer,
+      peerRestartInFlight: peerRestartInFlightId === conversation.id,
     }),
     [
       collapsed,
@@ -295,6 +299,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       groups,
       handleMoveToGroup,
       handleNewGroup,
+      handleRestartPeer,
+      peerRestartInFlightId,
     ]
   );
 
