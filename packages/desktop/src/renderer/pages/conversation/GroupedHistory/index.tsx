@@ -5,14 +5,15 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
+import { ipcBridge } from '@/common';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, PreviewClose, PreviewOpen, Right } from '@icon-park/react';
+import { Button, Divider, Dropdown, Empty, Input, Menu, Message, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen, Play, PreviewClose, PreviewOpen, Reload, Right, Power } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
@@ -237,6 +238,59 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     setRenameGroupTarget(null);
     setRenameGroupValue('');
   }, []);
+
+  // Group peer lifecycle (start / restart / kill all peers in a group).
+  // groupActionInFlight: Set<groupId> — disables menu items while IPC is in-flight.
+  const groupActionInFlightRef = useRef<Set<string>>(new Set());
+  const [groupActionInFlightId, setGroupActionInFlightId] = useState<string | null>(null);
+
+  const handleGroupPeerAction = useCallback(
+    (group: ChatGroup, action: 'start' | 'restart' | 'kill') => {
+      const doAction = async () => {
+        if (groupActionInFlightRef.current.has(group.id)) return;
+        groupActionInFlightRef.current.add(group.id);
+        setGroupActionInFlightId(group.id);
+        try {
+          const result = await ipcBridge.peers.groupAction.invoke({ group: group.name, action });
+          if (result.success) {
+            const key =
+              action === 'start'
+                ? 'conversation.history.groupPeersStartSuccess'
+                : action === 'restart'
+                  ? 'conversation.history.groupPeersRestartSuccess'
+                  : 'conversation.history.groupPeersKillSuccess';
+            Message.success(t(key, { count: result.count, group: group.name }));
+          } else {
+            Message.error(t('conversation.history.groupPeersActionError', { errors: result.errors.join('; ') }));
+          }
+        } catch (e) {
+          console.error(`[GroupedHistory] group ${action} failed for group ${group.name}:`, e);
+          Message.error(t('conversation.history.groupPeersActionError', { errors: String(e) }));
+        } finally {
+          groupActionInFlightRef.current.delete(group.id);
+          setGroupActionInFlightId(null);
+        }
+      };
+      void doAction();
+    },
+    [t]
+  );
+
+  const handleKillGroupPeers = useCallback(
+    (group: ChatGroup) => {
+      Modal.confirm({
+        title: t('conversation.history.killGroupPeersConfirmTitle'),
+        content: t('conversation.history.killGroupPeersConfirmContent', { group: group.name }),
+        okText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        onOk: () => handleGroupPeerAction(group, 'kill'),
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [t, handleGroupPeerAction]
+  );
 
   // Group reordering (drag a group header). Order persists via useGroups → localStorage.
   const handleGroupDragEnd = useCallback(
@@ -644,6 +698,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                               onClickMenuItem={(key) => {
                                 if (key === 'rename') openRenameGroup(group);
                                 else if (key === 'delete' && isEmptyGroup) deleteGroup(group.id);
+                                else if (key === 'start-peers') handleGroupPeerAction(group, 'start');
+                                else if (key === 'restart-peers') handleGroupPeerAction(group, 'restart');
+                                else if (key === 'kill-peers') handleKillGroupPeers(group);
                               }}
                             >
                               <Menu.Item key='rename'>{t('conversation.history.renameGroup')}</Menu.Item>
@@ -659,6 +716,25 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                                     <span>{t('conversation.history.deleteGroup')}</span>
                                   </Tooltip>
                                 )}
+                              </Menu.Item>
+                              <Divider className='!my-4px' />
+                              <Menu.Item key='start-peers' disabled={groupActionInFlightId === group.id}>
+                                <div className='flex items-center gap-8px'>
+                                  <Play theme='outline' size='14' />
+                                  <span>{t('conversation.history.startGroupPeers')}</span>
+                                </div>
+                              </Menu.Item>
+                              <Menu.Item key='restart-peers' disabled={groupActionInFlightId === group.id}>
+                                <div className='flex items-center gap-8px'>
+                                  <Reload theme='outline' size='14' />
+                                  <span>{t('conversation.history.restartGroupPeers')}</span>
+                                </div>
+                              </Menu.Item>
+                              <Menu.Item key='kill-peers' disabled={groupActionInFlightId === group.id}>
+                                <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
+                                  <Power theme='outline' size='14' />
+                                  <span>{t('conversation.history.killGroupPeers')}</span>
+                                </div>
                               </Menu.Item>
                             </Menu>
                           }

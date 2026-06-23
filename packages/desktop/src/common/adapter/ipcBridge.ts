@@ -1445,6 +1445,28 @@ export const peerBroker = {
 };
 
 // ---------------------------------------------------------------------------
+// Peer restart — native main-process operation (broker unregister + re-register).
+// ---------------------------------------------------------------------------
+
+export type IPeerRestartResult = { success: true; status: 'reset' | 'not_found' } | { success: false; msg: string };
+
+export const peer = {
+  restart: bridge.buildProvider<IPeerRestartResult, { conversation_id: string }>('peer:restart'),
+};
+
+// ---------------------------------------------------------------------------
+// Peer group lifecycle — native main-process operations (ADR-0005 pattern).
+// ---------------------------------------------------------------------------
+
+export type IPeerGroupActionResult = { success: boolean; count: number; errors: string[] };
+
+export const peers = {
+  groupAction: bridge.buildProvider<IPeerGroupActionResult, { group: string; action: 'start' | 'restart' | 'kill' }>(
+    'peers:group-action'
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // Shared types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 
