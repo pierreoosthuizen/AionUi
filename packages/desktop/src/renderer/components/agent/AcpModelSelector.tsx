@@ -92,8 +92,6 @@ const AcpModelSelector: React.FC<{
     },
     [isRuntimeSetting, setConfigOption, thoughtLevel, t]
   );
-  const tooltipContent = combinedLabel;
-
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
   if (!model_info) {
@@ -110,13 +108,16 @@ const AcpModelSelector: React.FC<{
   }
 
   if (!canSwitch) {
+    // Read-only: a known but non-switchable model (e.g. codex peers have no
+    // `model` config option, so there is no switch path). Make the pill honest
+    // — dim it and explain via tooltip — so the click isn't silently swallowed.
     return (
-      <Tooltip content={tooltipContent} position='top'>
+      <Tooltip content={t('conversation.welcome.modelFixedForAgent')} position='top'>
         <RuntimeSelectorPill
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
           label={combinedLabel}
           leading={renderLogo()}
-          style={{ cursor: 'default' }}
+          style={{ cursor: 'default', opacity: 0.6 }}
         />
       </Tooltip>
     );

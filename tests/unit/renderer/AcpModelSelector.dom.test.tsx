@@ -101,6 +101,7 @@ vi.mock('react-i18next', () => ({
       if (key === 'common.defaultModel') return 'Default';
       if (key === 'conversation.welcome.useCliModel') return 'Use CLI model';
       if (key === 'conversation.welcome.modelSwitchNotSupported') return 'Model switch is not supported';
+      if (key === 'conversation.welcome.modelFixedForAgent') return 'Model is fixed for this agent';
       return options?.defaultValue ?? key;
     },
   }),
@@ -157,7 +158,12 @@ vi.mock('@arco-design/web-react', () => {
       success: messageSuccessMock,
       error: messageErrorMock,
     },
-    Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    Tooltip: ({ content, children }: { content?: React.ReactNode; children?: React.ReactNode }) => (
+      <>
+        <span data-testid='tooltip-content'>{content}</span>
+        {children}
+      </>
+    ),
   };
 });
 
@@ -230,6 +236,26 @@ describe('AcpModelSelector runtime options', () => {
       expect(messageErrorMock).toHaveBeenCalledWith('agent.config.commandAck');
     });
     expect(screen.getByTestId('acp-model-selector')).toHaveTextContent('GPT-5.2 · High');
+  });
+
+  it('renders a dimmed, honest read-only pill (no fake dropdown) when the model cannot be switched', () => {
+    // ISS-010: codex/legacy peers have no switch path; the read-only pill must
+    // not look clickable. No model dropdown, no acp-model-selector testid, and a
+    // tooltip that explains the model is fixed.
+    useAcpModelInfoMock.mockReturnValue(
+      makeResult({
+        canSwitch: false,
+        thoughtLevel: null,
+        model_info: { current_model_id: 'gpt-5.2', current_model_label: 'GPT-5.2', available_models: [] },
+      })
+    );
+
+    render(<AcpModelSelector conversation_id='conversation-1' backend='codex' />);
+
+    expect(screen.queryByRole('group', { name: 'Model' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('acp-model-selector')).not.toBeInTheDocument();
+    expect(screen.getByText('GPT-5.2')).toBeInTheDocument();
+    expect(screen.getByTestId('tooltip-content')).toHaveTextContent('Model is fixed for this agent');
   });
 
   it('renders setting progress at the trailing edge instead of using Arco button loading', () => {
