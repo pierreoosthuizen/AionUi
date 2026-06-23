@@ -362,12 +362,17 @@ const ScheduledTasksPage: React.FC = () => {
                     </Tooltip>
 
                     <div className='flex shrink-0 items-center gap-10px' onClick={(e) => e.stopPropagation()}>
+                      {/* Wrap the icon in a span: Arco Tooltip needs a ref-able
+                          DOM child. A bare icon-park component (no forwardRef)
+                          leaves Trigger unable to resolve a ref → findDOMNode →
+                          white-screen crash on hover. */}
                       <Tooltip content={t('cron.page.peer.runNow')}>
-                        <PlayOne
-                          size='16'
-                          className='cursor-pointer text-t-secondary hover:text-t-primary'
+                        <span
+                          className='inline-flex cursor-pointer text-t-secondary hover:text-t-primary'
                           onClick={() => handleRunPeerNow(task)}
-                        />
+                        >
+                          <PlayOne size='16' />
+                        </span>
                       </Tooltip>
                       <Popconfirm title={t('cron.page.peer.deleteConfirm')} onOk={() => handleDeletePeer(task)}>
                         <Delete size='16' className='cursor-pointer text-t-secondary hover:text-red-5' />
