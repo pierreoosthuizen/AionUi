@@ -156,32 +156,34 @@ async function restartPeer(sessionName: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export function initPeerGroupBridge(): void {
-  ipcBridge.peers.groupAction.provider(async ({ group, action }) => {
-    const allPeers = readPeersJson();
-    const targets = peersInGroup(group, allPeers);
+  ipcBridge.peers.groupAction.provider(
+    async ({ group, action }: { group: string; action: 'start' | 'restart' | 'kill' }) => {
+      const allPeers = readPeersJson();
+      const targets = peersInGroup(group, allPeers);
 
-    const errors: string[] = [];
-    let count = 0;
+      const errors: string[] = [];
+      let count = 0;
 
-    for (const peer of targets) {
-      const name = peer.session_name as string; // guaranteed by peersInGroup filter
-      try {
-        if (action === 'start') {
-          await startPeer(name);
-        } else if (action === 'kill') {
-          await killPeer(name);
-        } else {
-          // action === 'restart'
-          await restartPeer(name);
+      for (const peer of targets) {
+        const name = peer.session_name as string; // guaranteed by peersInGroup filter
+        try {
+          if (action === 'start') {
+            await startPeer(name);
+          } else if (action === 'kill') {
+            await killPeer(name);
+          } else {
+            // action === 'restart'
+            await restartPeer(name);
+          }
+          count++;
+        } catch (e) {
+          const msg = `${name}: ${e instanceof Error ? e.message : String(e)}`;
+          errors.push(msg);
+          console.error(`[PeerGroupBridge] ${action} failed for peer ${name}:`, e);
         }
-        count++;
-      } catch (e) {
-        const msg = `${name}: ${e instanceof Error ? e.message : String(e)}`;
-        errors.push(msg);
-        console.error(`[PeerGroupBridge] ${action} failed for peer ${name}:`, e);
       }
-    }
 
-    return { success: errors.length === 0, count, errors };
-  });
+      return { success: errors.length === 0, count, errors };
+    }
+  );
 }

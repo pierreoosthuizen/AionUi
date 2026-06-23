@@ -1,5 +1,38 @@
 # Changelog
 
+## [2.1.21](https://github.com/pierreoosthuizen/AionUi/compare/v1.00...v2.1.21) (2026-06-23)
+
+### Desktop
+
+#### Features
+
+- **history:** add start/restart/kill-all-peers to group context menu
+- **peers:** add restart-in-place to conversation context menu
+- **mcp:** add reconnect option to MCP server kebab menu in Settings
+- **peers:** show live broker to_id in brackets next to peer name
+- **git:** add worktree badge to chat panel header
+- **skills:** location grouping + 4-state enable toggle (ADR-0003)
+- **resilience:** per-route error boundaries (ADR-0004)
+- **metrics:** integrate metrics panel — bar charts, tabs, resize, toggles
+- **git:** branch switcher, worktree creation, diff chip under chat input
+- **mcp:** per-server runtime status in MCP settings tab
+
+#### Bug Fixes
+
+- **chat:** render peer channel messages as styled blocks (no raw XML)
+- **send:** retry user message on AIONUI_CONVERSATION_BUSY when turn frees
+- **ipc:** map 'already running' 409 to AIONUI_CONVERSATION_BUSY
+- **peer:** self-heal peers.json resolution + auto-group on open
+- **cron:** wrap run-now icon so Tooltip can resolve a ref
+
+### Core ([v0.1.35](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.35))
+
+#### Bug Fixes
+
+- **agent:** support aionrs 0.1.31 (#503)
+
+---
+
 ## [2.1.20](https://github.com/iOfficeAI/AionUi/compare/v2.1.19...v2.1.20) (2026-06-17)
 
 ### Desktop

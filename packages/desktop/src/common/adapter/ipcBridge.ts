@@ -1455,6 +1455,18 @@ export const peer = {
 };
 
 // ---------------------------------------------------------------------------
+// Peer group lifecycle — native main-process operations (ADR-0005 pattern).
+// ---------------------------------------------------------------------------
+
+export type IPeerGroupActionResult = { success: boolean; count: number; errors: string[] };
+
+export const peers = {
+  groupAction: bridge.buildProvider<IPeerGroupActionResult, { group: string; action: 'start' | 'restart' | 'kill' }>(
+    'peers:group-action'
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // Shared types (re-exported for consumers)
 // ---------------------------------------------------------------------------
 
