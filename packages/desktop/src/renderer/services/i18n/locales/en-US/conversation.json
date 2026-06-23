@@ -520,6 +520,9 @@
     "complete": "Thought complete",
     "label": "Thinking..."
   },
+  "channel": {
+    "ariaLabel": "Peer message"
+  },
   "skills": {
     "loaded": "Loaded Skills"
   },

@@ -21,6 +21,8 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
+import { hasChannelBlocks, parseChannelBlocks, stripChannelBlocks } from '@renderer/utils/chat/channelBlockParser';
+import MessageChannel from './MessageChannel';
 
 /**
  * Format a timestamp for message display.
@@ -107,9 +109,19 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
       if (hasSkillSuggest(content)) {
         content = stripSkillSuggest(content);
       }
+      // Strip <channel> blocks; they are rendered as MessageChannel components below
+      if (hasChannelBlocks(content)) {
+        content = stripChannelBlocks(content);
+      }
       return content;
     }
     return content;
+  }, [message.content.content]);
+
+  const channelBlocks = useMemo(() => {
+    const raw = message.content.content;
+    if (typeof raw !== 'string' || !hasChannelBlocks(raw)) return [];
+    return parseChannelBlocks(raw);
   }, [message.content.content]);
 
   const { text, files } = parseFileMarker(contentToRender);
@@ -223,6 +235,14 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
             </div>
           )}
         </div>
+        {/* Peer channel message blocks extracted from <channel> XML tags */}
+        {channelBlocks.length > 0 && (
+          <div className='w-full mt-4px'>
+            {channelBlocks.map((block, index) => (
+              <MessageChannel key={`${block.fromId}-${block.sentAt}-${index}`} block={block} />
+            ))}
+          </div>
+        )}
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies.
             For AI replies split across several text messages, only the last text
