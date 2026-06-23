@@ -586,6 +586,7 @@ export type I18nKey =
   | 'conversation.welcome.clearWorkspace'
   | 'conversation.welcome.currentWorkspace'
   | 'conversation.welcome.linkFolder'
+  | 'conversation.welcome.modelFixedForAgent'
   | 'conversation.welcome.modelSwitchNotSupported'
   | 'conversation.welcome.newConversation'
   | 'conversation.welcome.none'
