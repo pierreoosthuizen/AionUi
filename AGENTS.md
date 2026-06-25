@@ -1,6 +1,6 @@
-# AionUi - Project Guide
+# Agora - Project Guide
 
-All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR. ([Chinese version](CONTRIBUTING.zh.md))
+Private personal project — not open-source, not distributed. Single maintainer (Pierre); no external contributors. The conventions below exist to keep the codebase sane, not to onboard outsiders.
 
 ## Code Conventions
 
