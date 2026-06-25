@@ -74,7 +74,8 @@ xattr -dr com.apple.quarantine "$APP_DEST" 2>/dev/null || true
 
 # 5. Relaunch.
 open "$APP_DEST"
-AGORA_VERSION="$(grep -oE "AGORA_VERSION = '[^']+'" packages/desktop/src/common/agoraVersion.ts | grep -oE "[0-9]+\.[0-9]+" || echo '?')"
+# ISS-011: version now lives only in package.json (agoraVersion.ts was removed).
+AGORA_VERSION="$(node -p "require('./package.json').version" 2>/dev/null || echo '?')"
 echo "✅ Deployed ${APP_NAME} v${AGORA_VERSION} → ${APP_DEST} (relaunched)."
 if $FULL; then
   echo "   Shareable DMG: $(ls out/${APP_NAME}-*-mac-arm64.dmg 2>/dev/null | tail -1 || echo '(none)')"
