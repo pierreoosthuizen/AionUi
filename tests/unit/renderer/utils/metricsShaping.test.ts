@@ -34,7 +34,7 @@ function row(overrides: Partial<MetricHistoryRow> & { ts: number }): MetricHisto
     weekly_pct: overrides.weekly_pct ?? null,
     weekly_resets_at: overrides.weekly_resets_at ?? null,
     peers_open: overrides.peers_open ?? 0,
-    peers_busy: overrides.peers_busy ?? 0,
+    peers_running: overrides.peers_running ?? 0,
   };
 }
 
@@ -217,20 +217,20 @@ describe('shapeActivePeers5min', () => {
     expect(series.unit).toBe('count');
   });
 
-  it('uses last peers_busy in slot (not max)', () => {
-    /** Verifies that the last peers_busy value in a slot wins, not the maximum. */
+  it('uses last peers_running in slot (not max)', () => {
+    /** Verifies that the last peers_running value in a slot wins, not the maximum. */
     const windowStart = NOW - MS_5HOURS;
-    const r1 = row({ ts: windowStart + 60_000, peers_busy: 4 });
-    const r2 = row({ ts: windowStart + 2 * 60_000, peers_busy: 1 });
+    const r1 = row({ ts: windowStart + 60_000, peers_running: 4 });
+    const r2 = row({ ts: windowStart + 2 * 60_000, peers_running: 1 });
     const series = shapeActivePeers5min([r1, r2], NOW);
     expect(series.bars[0].value).toBe(1);
   });
 
-  it('computes axis max from observed peers_busy values', () => {
-    /** Verifies that axis max equals the maximum observed peers_busy across all bars. */
+  it('computes axis max from observed peers_running values', () => {
+    /** Verifies that axis max equals the maximum observed peers_running across all bars. */
     const windowStart = NOW - MS_5HOURS;
-    const r1 = row({ ts: windowStart + 60_000, peers_busy: 2 });
-    const r2 = row({ ts: windowStart + MS_5MIN + 60_000, peers_busy: 6 });
+    const r1 = row({ ts: windowStart + 60_000, peers_running: 2 });
+    const r2 = row({ ts: windowStart + MS_5MIN + 60_000, peers_running: 6 });
     const series = shapeActivePeers5min([r1, r2], NOW);
     expect(series.max).toBe(6);
   });
@@ -248,7 +248,7 @@ describe('shapeActivePeers5min', () => {
      * subsequent bars null.
      */
     const windowStart = NOW - MS_5HOURS;
-    const r = row({ ts: windowStart + 60_000, peers_busy: 3 });
+    const r = row({ ts: windowStart + 60_000, peers_running: 3 });
     const series = shapeActivePeers5min([r], NOW);
     expect(series.bars[0].value).toBe(3);
     expect(series.bars.slice(1).every((b) => b.value === null)).toBe(true);

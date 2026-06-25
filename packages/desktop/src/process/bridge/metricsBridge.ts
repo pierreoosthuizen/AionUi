@@ -27,7 +27,7 @@ import type { MetricHistoryRow } from '@/common/types/metricsPanel';
 /** Cached READ-ONLY db handle; null = file not yet available or open failed. */
 let db: DatabaseT.Database | null = null;
 
-const DB_COLS = `ts, session_pct, session_resets_at, weekly_pct, weekly_resets_at, peers_open, peers_busy`;
+const DB_COLS = `ts, session_pct, session_resets_at, weekly_pct, weekly_resets_at, peers_open, peers_running`;
 const QUERY_SQL = `SELECT ${DB_COLS} FROM metric_snapshot WHERE ts >= ? ORDER BY ts ASC`;
 
 /**
