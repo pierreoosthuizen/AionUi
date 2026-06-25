@@ -32,8 +32,9 @@ export type MetricHistoryRow = {
   weekly_resets_at: string | null;
   /** managed (chat-backed) peers open at snapshot time */
   peers_open: number;
-  /** peers with busy=1 at snapshot time */
-  peers_busy: number;
+  /** ISS-008: every live peer the broker reported at snapshot time — the
+   *  "Active Peers" series. (peers_busy was always 0: peers rarely self-mark busy.) */
+  peers_running: number;
 };
 
 /** Args for the history query IPC. Returns rows with ts >= sinceMs, ascending. */

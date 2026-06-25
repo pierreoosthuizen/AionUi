@@ -200,12 +200,16 @@ export function shapeOpenPeersWeek(rows: MetricHistoryRow[], nowMs: number): Cha
 /**
  * Shape the 5-hour active-peers series (60 × 5-min slots, unit: count).
  *
- * Window: [nowMs-5h, nowMs]. Value per slot is the last peers_busy in that slot.
- * Axis max is max(1, observed maximum across all bars).
+ * Window: [nowMs-5h, nowMs]. Value per slot is the last peers_running (every live
+ * peer the broker reported) in that slot — ISS-008: this used to read peers_busy,
+ * which is ~always 0 because peers rarely self-mark busy, so the chart showed no
+ * data. Axis max is max(1, observed maximum across all bars).
  */
 export function shapeActivePeers5min(rows: MetricHistoryRow[], nowMs: number): ChartSeries {
   const windowStart = nowMs - MS_5HOURS;
-  const bars = buildBars(rows, windowStart, nowMs, MS_5MIN, nowMs, (slotRows) => lastNonNull(slotRows, 'peers_busy'));
+  const bars = buildBars(rows, windowStart, nowMs, MS_5MIN, nowMs, (slotRows) =>
+    lastNonNull(slotRows, 'peers_running')
+  );
 
   let observedMax = 0;
   for (const bar of bars) {
