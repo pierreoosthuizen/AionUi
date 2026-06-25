@@ -10,10 +10,14 @@ import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowCircleLeft, CloseOne, Computer, Moon, SettingTwo, SunOne } from '@icon-park/react';
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
-import { AGORA_VERSION } from '@/common/agoraVersion';
 import { DARK_THEME_ID, LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 import PlanUsageBars from './PlanUsageBars';
+
+// ISS-011: show the real build version from root package.json (injected at build
+// time as __APP_VERSION__, the same global the About box uses) instead of a
+// hand-maintained constant.
+declare const __APP_VERSION__: string;
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -161,7 +165,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           collapsed ? 'text-center' : 'pl-12px'
         )}
       >
-        v{AGORA_VERSION}
+        v{__APP_VERSION__}
       </div>
     </div>
   );
