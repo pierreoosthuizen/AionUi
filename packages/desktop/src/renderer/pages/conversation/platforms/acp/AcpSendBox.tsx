@@ -51,6 +51,7 @@ import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildSendFailureError, isConversationBusyError } from './buildSendFailureError';
+import { COMMIT_STAGED_ONLY_PROMPT } from './commitPrompt';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -471,9 +472,7 @@ Please check your local CLI tool authentication status`,
   };
 
   const handleCommit = useCallback(() => {
-    void onSendHandler(
-      'Stage all current changes and create a single git commit with a concise conventional-commit message summarizing them. Do not push.'
-    );
+    void onSendHandler(COMMIT_STAGED_ONLY_PROMPT);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [atPath, uploadFile, isBusy, hasPendingCommands]);
 

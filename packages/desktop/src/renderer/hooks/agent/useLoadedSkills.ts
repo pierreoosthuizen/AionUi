@@ -119,28 +119,42 @@ export async function readAppliedProfiles(workspace: string): Promise<string[]> 
   }
 }
 
-// Static per session — scan each dir once and reuse.
-let userScan: Promise<SkillItem[]> | null = null;
-const profileScans = new Map<string, Promise<SkillItem[]>>();
+// Per-session scan cache, keyed by directory. ISS-013: an EMPTY result is NOT
+// retained — at cold start the backend HTTP server may not be up yet, so the scan
+// resolves `[]`; caching that would hide skills for the whole session. Dropping the
+// empty entry lets the next mount (or the retry below) re-scan once the backend is
+// ready. Non-empty scans are reused as before.
+const scanCache = new Map<string, Promise<SkillItem[]>>();
 
-function scanProfile(profile: string): Promise<SkillItem[]> {
-  let scan = profileScans.get(profile);
+function cachedScan(dir: string): Promise<SkillItem[]> {
+  let scan = scanCache.get(dir);
   if (!scan) {
-    scan = scanSkills(profileSkillsDir(profile));
-    profileScans.set(profile, scan);
+    scan = scanSkills(dir).then((skills) => {
+      if (skills.length === 0) scanCache.delete(dir);
+      return skills;
+    });
+    scanCache.set(dir, scan);
   }
   return scan;
+}
+
+function scanProfile(profile: string): Promise<SkillItem[]> {
+  return cachedScan(profileSkillsDir(profile));
 }
 
 export function useLoadedSkills(workspace?: string): LoadedSkills {
   // Raw scan (origin-tagged, no state yet); state is layered on from overrides.
   const [raw, setRaw] = useState<{ user: SkillItem[]; project: SkillItem[] }>({ user: [], project: [] });
   const [overrides, setOverrides] = useState<Record<string, string>>({});
+  // ISS-013: bounded self-heal so a Skills tab left open during cold start refreshes
+  // once the backend comes up, instead of showing an empty list until remount.
+  const [retry, setRetry] = useState(0);
 
   useEffect(() => {
     let alive = true;
-    userScan ??= scanSkills(USER_SKILLS_DIR);
-    const projectScan = workspace ? scanSkills(`${workspace}/.claude/skills`) : Promise.resolve<SkillItem[]>([]);
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const userScan = cachedScan(USER_SKILLS_DIR);
+    const projectScan = workspace ? cachedScan(`${workspace}/.claude/skills`) : Promise.resolve<SkillItem[]>([]);
     const appliedScan = workspace ? readAppliedProfiles(workspace) : Promise.resolve<string[]>([]);
     void (async () => {
       const [user, project, applied] = await Promise.all([userScan, projectScan, appliedScan]);
@@ -164,11 +178,16 @@ export function useLoadedSkills(workspace?: string): LoadedSkills {
         user: Array.from(userMerged.values()).toSorted(byName),
         project: Array.from(projectMerged.values()).toSorted(byName),
       });
+
+      if (user.length === 0 && project.length === 0 && profileSkills.length === 0 && retry < 5) {
+        retryTimer = setTimeout(() => setRetry((r) => r + 1), 1500);
+      }
     })();
     return () => {
       alive = false;
+      if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [workspace]);
+  }, [workspace, retry]);
 
   // Persisted enable-states, reloaded after every cycle so the row reflects disk.
   const reloadOverrides = useCallback(async () => {
