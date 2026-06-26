@@ -72,7 +72,15 @@ rm -rf "$APP_DEST"
 cp -R "$APP_SRC" "$APP_DEST"
 xattr -dr com.apple.quarantine "$APP_DEST" 2>/dev/null || true
 
-# 5. Relaunch.
+# 5. Clear the managed-tools ACP cache so aioncore re-installs the bundled
+#    version on next launch (picks up upgrades like claude-agent-acp 0.52.0).
+RUNTIME_ACP_DIR="${HOME}/Library/Application Support/Agora/aionui/runtime/managed-tools/acp"
+if [[ -d "$RUNTIME_ACP_DIR" ]]; then
+  echo "• Clearing managed-tools ACP cache → force bundle reinstall"
+  rm -rf "$RUNTIME_ACP_DIR"
+fi
+
+# 6. Relaunch.
 open "$APP_DEST"
 # ISS-011: version now lives only in package.json (agoraVersion.ts was removed).
 AGORA_VERSION="$(node -p "require('./package.json').version" 2>/dev/null || echo '?')"
