@@ -13,7 +13,7 @@ Electron app, two processes — never mix their APIs:
 | Main     | `packages/desktop/src/process/`  | No DOM APIs  |
 | Renderer | `packages/desktop/src/renderer/` | No Node APIs |
 
-IPC bridge: `packages/desktop/src/preload/`. Agent/AI conventions: [AGENTS.md](AGENTS.md).
+IPC bridge: `packages/desktop/src/preload/`. Agent/AI conventions: [CLAUDE.md](CLAUDE.md).
 
 ## Common commands
 
