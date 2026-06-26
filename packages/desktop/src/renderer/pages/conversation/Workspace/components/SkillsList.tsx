@@ -5,16 +5,21 @@
  */
 
 import {
+  clearSkillScanCache,
   useLoadedSkills,
   type SkillGroups,
   type SkillItem,
   type SkillState,
 } from '@/renderer/hooks/agent/useLoadedSkills';
-import { Message } from '@arco-design/web-react';
-import { Lightning } from '@icon-park/react';
+import { iconColors } from '@/renderer/styles/colors';
+import { Message, Tooltip } from '@arco-design/web-react';
+import { Lightning, PreviewClose, PreviewOpen, Refresh } from '@icon-park/react';
 import type { TFunction } from 'i18next';
-import React from 'react';
+import React, { useState } from 'react';
 import GroupedItemList from './GroupedItemList';
+
+/** Show every skill, or hide those toggled 'off'. Ephemeral — resets on mount. */
+type FilterMode = 'all' | 'hide-off';
 
 type SkillsListProps = {
   t: TFunction;
@@ -28,7 +33,50 @@ type SkillsListProps = {
  * `.claude/settings.local.json`, like the Claude Code CLI's `/skills`.
  */
 const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
-  const { user, project, cycle } = useLoadedSkills(workspace);
+  // REQ-027: the refresh button bumps this nonce (after clearing the scan cache)
+  // to force useLoadedSkills to re-scan; the filter is ephemeral, resetting here.
+  const [skillsEpoch, setSkillsEpoch] = useState(0);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const { user, project, cycle } = useLoadedSkills(workspace, skillsEpoch);
+
+  const refreshSkills = () => {
+    clearSkillScanCache();
+    setSkillsEpoch((e) => e + 1);
+  };
+  const toggleFilter = () => setFilterMode((m) => (m === 'all' ? 'hide-off' : 'all'));
+
+  // hide-off drops skills whose resolved state is 'off' (skillOverrides[name] === 'off',
+  // surfaced onto SkillItem.state by useLoadedSkills via stateFromLiteral). Skills with
+  // no override entry resolve to 'on' and stay visible in both modes.
+  const filter = filterMode === 'hide-off' ? (s: SkillItem) => s.state !== 'off' : undefined;
+
+  const filterLabel =
+    filterMode === 'all'
+      ? t('conversation.workspace.skills.filter.showingAll')
+      : t('conversation.workspace.skills.filter.hidingOff');
+
+  const headerActions = (
+    <>
+      <Tooltip content={t('conversation.workspace.skills.refresh')}>
+        <span
+          aria-label={t('conversation.workspace.skills.refresh')}
+          className='flex items-center cursor-pointer'
+          onClick={refreshSkills}
+        >
+          <Refresh theme='outline' size={16} fill={iconColors.secondary} />
+        </span>
+      </Tooltip>
+      <Tooltip content={filterLabel}>
+        <span aria-label={filterLabel} className='flex items-center cursor-pointer' onClick={toggleFilter}>
+          {filterMode === 'all' ? (
+            <PreviewOpen theme='outline' size={16} fill={iconColors.secondary} />
+          ) : (
+            <PreviewClose theme='outline' size={16} fill={iconColors.secondary} />
+          )}
+        </span>
+      </Tooltip>
+    </>
+  );
 
   // Remap the two location buckets into GroupedItemList's shared shape (same
   // read-buckets→remap pattern McpServersList uses).
@@ -61,6 +109,8 @@ const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
       clickToFill={false}
       onCycle={onCycle}
       stateLabels={stateLabels}
+      headerActions={headerActions}
+      filter={filter}
     />
   );
 };

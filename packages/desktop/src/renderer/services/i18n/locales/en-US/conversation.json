@@ -337,6 +337,11 @@
       "userSection": "User",
       "projectSection": "Project",
       "writeFailed": "Could not update skill — settings file unreadable",
+      "refresh": "Refresh skills",
+      "filter": {
+        "showingAll": "Showing all skills",
+        "hidingOff": "Hiding 'off' skills"
+      },
       "state": {
         "on": "On",
         "nameOnly": "Name only",

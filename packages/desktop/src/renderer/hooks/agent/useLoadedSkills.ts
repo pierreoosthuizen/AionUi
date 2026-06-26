@@ -126,6 +126,12 @@ export async function readAppliedProfiles(workspace: string): Promise<string[]> 
 // ready. Non-empty scans are reused as before.
 const scanCache = new Map<string, Promise<SkillItem[]>>();
 
+/** REQ-027: drop every cached scan so the next mount/epoch re-scans from disk.
+ *  Synchronous Map.clear() — race-safe (no awaited state), reused by ADR-0014. */
+export function clearSkillScanCache(): void {
+  scanCache.clear();
+}
+
 function cachedScan(dir: string): Promise<SkillItem[]> {
   let scan = scanCache.get(dir);
   if (!scan) {
@@ -142,7 +148,9 @@ function scanProfile(profile: string): Promise<SkillItem[]> {
   return cachedScan(profileSkillsDir(profile));
 }
 
-export function useLoadedSkills(workspace?: string): LoadedSkills {
+/** `epoch` is the REQ-027 refresh nonce: callers `clearSkillScanCache()` then bump
+ *  it to force the scan effect to re-run against a now-empty cache. */
+export function useLoadedSkills(workspace?: string, epoch = 0): LoadedSkills {
   // Raw scan (origin-tagged, no state yet); state is layered on from overrides.
   const [raw, setRaw] = useState<{ user: SkillItem[]; project: SkillItem[] }>({ user: [], project: [] });
   const [overrides, setOverrides] = useState<Record<string, string>>({});
@@ -187,7 +195,11 @@ export function useLoadedSkills(workspace?: string): LoadedSkills {
       alive = false;
       if (retryTimer) clearTimeout(retryTimer);
     };
-  }, [workspace, retry]);
+    // `epoch` is an intentional refresh nonce: it carries no value into the effect
+    // body but its change must re-run the (now cache-cleared) scan. ISS-013 retry
+    // self-heal and workspace switch are the other re-run triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspace, retry, epoch]);
 
   // Persisted enable-states, reloaded after every cycle so the row reflects disk.
   const reloadOverrides = useCallback(async () => {

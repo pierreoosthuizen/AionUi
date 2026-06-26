@@ -39,6 +39,12 @@ type GroupedItemListProps = {
   onCycle?: (item: SkillItem) => void;
   /** Skills only: localized label per state for the glyph's hover title. */
   stateLabels?: Record<SkillState, string>;
+  /** Optional controls rendered right-aligned in the header row (REQ-027:
+   *  Skills tab refresh + show/hide). Other tabs pass nothing → unchanged. */
+  headerActions?: React.ReactNode;
+  /** Optional extra predicate composed with the search match (REQ-027 hide-off).
+   *  A skill is shown only when both search and this filter accept it. */
+  filter?: (item: SkillItem) => boolean;
 };
 
 function loadCollapsed(key: string): Set<string> {
@@ -108,27 +114,30 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
   clickToFill = true,
   onCycle,
   stateLabels,
+  headerActions,
+  filter,
 }) => {
   const { global, profiles } = groups;
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState<Set<string>>(() => loadCollapsed(storageKey));
 
   const q = query.trim().toLowerCase();
-  const match = useMemo(
-    () => (s: SkillItem) => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q),
-    [q]
+  const visible = useMemo(
+    () => (s: SkillItem) =>
+      (!q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q)) && (!filter || filter(s)),
+    [q, filter]
   );
 
   const nodes = useMemo(() => {
     const list: Array<{ key: string; label: string; skills: SkillItem[] }> = [];
-    const globalFiltered = global.filter(match);
+    const globalFiltered = global.filter(visible);
     if (globalFiltered.length > 0) list.push({ key: '__global__', label: globalLabel, skills: globalFiltered });
     for (const p of profiles) {
-      const skills = p.skills.filter(match);
+      const skills = p.skills.filter(visible);
       if (skills.length > 0) list.push({ key: `p:${p.name}`, label: p.name, skills });
     }
     return list;
-  }, [global, profiles, match, globalLabel]);
+  }, [global, profiles, visible, globalLabel]);
 
   const total = nodes.reduce((n, node) => n + node.skills.length, 0);
 
@@ -147,13 +156,14 @@ const GroupedItemList: React.FC<GroupedItemListProps> = ({
 
   return (
     <div className='flex flex-col h-full min-h-0'>
-      <div className='px-12px pt-8px pb-6px'>
+      <div className='px-12px pt-8px pb-6px flex items-center gap-8px'>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={searchPlaceholder}
-          className='w-full h-28px px-10px rd-6px text-13px bg-fill-2 text-t-primary outline-none border border-transparent focus:border-[rgb(var(--primary-6))]'
+          className='flex-1 min-w-0 h-28px px-10px rd-6px text-13px bg-fill-2 text-t-primary outline-none border border-transparent focus:border-[rgb(var(--primary-6))]'
         />
+        {headerActions && <div className='flex items-center gap-8px shrink-0'>{headerActions}</div>}
       </div>
       {total === 0 ? (
         <div className='flex-1 flex items-center justify-center'>
