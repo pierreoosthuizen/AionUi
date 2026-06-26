@@ -106,25 +106,45 @@ function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtif
   ].join(' ');
 }
 
-function prepareManagedResources(binaryPath, targetDir) {
+function copyDirectorySync(src, dest) {
+  fs.cpSync(src, dest, {
+    recursive: true,
+    filter: (srcPath) => !srcPath.includes(`${path.sep}node_modules${path.sep}`) && !srcPath.endsWith(`${path.sep}node_modules`),
+  });
+}
+
+function findFilesNamed(dir, fileName) {
+  const results = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'node_modules') continue;
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) results.push(...findFilesNamed(fullPath, fileName));
+    else if (entry.isFile() && entry.name === fileName) results.push(fullPath);
+  }
+  return results;
+}
+
+function prepareManagedResources(_binaryPath, targetDir, projectRoot) {
   const bundleOut = path.join(targetDir, 'managed-resources');
-  const dataDir = path.join(targetDir, '.prepare-data');
+  const localManagedDir = path.join(projectRoot, 'resources', 'local-managed-resources');
 
   removeDirectorySafe(bundleOut);
-  removeDirectorySafe(dataDir);
   ensureDirectory(bundleOut);
-  ensureDirectory(dataDir);
 
-  console.log(`  Preparing managed resources under ${path.relative(process.cwd(), bundleOut)}`);
-  execFileSync(binaryPath, ['--data-dir', dataDir, 'prepare-managed-resources', '--bundle-out', bundleOut], {
-    stdio: 'inherit',
-    env: {
-      ...process.env,
-      AIONUI_BUNDLED_MANAGED_RESOURCES: '',
-    },
-  });
+  if (!fs.existsSync(localManagedDir)) {
+    console.log('  No local managed resources found — skipping');
+    return bundleOut;
+  }
 
-  removeDirectorySafe(dataDir);
+  console.log(`  Installing managed resources from ${path.relative(process.cwd(), localManagedDir)}`);
+  copyDirectorySync(localManagedDir, bundleOut);
+
+  for (const pkgJsonPath of findFilesNamed(bundleOut, 'package.json')) {
+    const dir = path.dirname(pkgJsonPath);
+    console.log(`  npm install in ${path.relative(process.cwd(), dir)}`);
+    execFileSync('npm', ['install', '--production', '--no-fund', '--no-audit'], { cwd: dir, stdio: 'inherit' });
+  }
+
   return bundleOut;
 }
 
@@ -487,7 +507,7 @@ function prepareAioncore(options) {
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
-    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
+    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir, projectRoot);
 
     // The release tag is the authoritative version — the aioncore
     // binary does not expose a --version flag (it has --app-version which
