@@ -6,7 +6,7 @@ Private personal project — not open-source, single maintainer (Pierre). Conven
 
 **Structure** — Max **10** direct children per directory; split by responsibility near the limit. Full rules: [docs/contributing/file-structure.md](docs/contributing/file-structure.md). Follow the `architecture` skill when creating files/modules.
 
-**Naming** — Components PascalCase (`Button.tsx`); utilities camelCase (`formatDate.ts`); hooks `use`-prefixed (`useTheme.ts`); constants/type files camelCase (values UPPER_SNAKE_CASE); style files kebab-case or `Name.module.css`; unused params `_`-prefixed.
+**Naming** — Components PascalCase (`Button.tsx`); utilities camelCase (`formatDate.ts`); hooks `use`-prefixed (`useTheme.ts`); constants/type files camelCase (values UPPER*SNAKE_CASE); style files kebab-case or `Name.module.css`; unused params `*`-prefixed.
 
 **UI** — `@arco-design/web-react` only; no raw interactive HTML (`<button>`/`<input>`/`<select>`). Icons: `@icon-park/react`.
 
@@ -35,7 +35,7 @@ Vitest 4, coverage ≥ 80%. `bun run test` / `bun run test:coverage`. See `testi
 
 **During dev** — `bun run lint:fix`, `bun run format`, `bunx tsc --noEmit`. If touching `renderer/`, `locales/`, or `common/config/i18n`, also run `bun run i18n:types` && `node scripts/check-i18n.js`.
 
-**Before push** — `just push` (lint → format-check → typecheck → test → push); any failure aborts. Lint runs `--quiet`, so only errors fail — pre-existing *warnings* are not failures; judge by exit code, not output volume.
+**Before push** — `just push` (lint → format-check → typecheck → test → push); any failure aborts. Lint runs `--quiet`, so only errors fail — pre-existing _warnings_ are not failures; judge by exit code, not output volume.
 
 **Before PR (optional)** — `prek run --from-ref origin/main --to-ref HEAD` replicates exact CI (read-only; reports, doesn't fix). The `oss-pr` skill runs it during PR creation.
 
