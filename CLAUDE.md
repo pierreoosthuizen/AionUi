@@ -4,7 +4,7 @@ Private personal project — not open-source, single maintainer (Pierre). Conven
 
 ## Code Conventions
 
-**Structure** — Max **10** direct children per directory; split by responsibility near the limit. Full rules: [docs/contributing/file-structure.md](docs/contributing/file-structure.md). Follow the `architecture` skill when creating files/modules.
+**Structure** — Max **10** direct children per directory; split by responsibility near the limit. Follow the `architecture` skill when creating files/modules.
 
 **Naming** — Components PascalCase (`Button.tsx`); utilities camelCase (`formatDate.ts`); hooks `use`-prefixed (`useTheme.ts`); constants/type files camelCase (values UPPER*SNAKE_CASE); style files kebab-case or `Name.module.css`; unused params `*`-prefixed.
 
@@ -25,7 +25,7 @@ Two processes, never mix APIs:
 - **Main** `packages/desktop/src/process/` — no DOM APIs
 - **Renderer** `packages/desktop/src/renderer/` — no Node.js APIs
 
-Cross-process via IPC bridge (`packages/desktop/src/preload/`). Detail: [docs/architecture/overview.md](docs/architecture/overview.md).
+Cross-process via IPC bridge (`packages/desktop/src/preload/`). Detail: [documentation/vault/ARCHITECTURE.md](documentation/vault/ARCHITECTURE.md).
 
 ## Testing
 
@@ -47,12 +47,21 @@ Vitest 4, coverage ≥ 80%. `bun run test` / `bun run test:coverage`. See `testi
 
 - One bounded task per round.
 - Claude validates every change before it lands (typecheck + tests). No unvalidated output commits.
-- Log each delegation in [docs/ollama-agent-efficacy.md](docs/ollama-agent-efficacy.md): task, model, rounds, verdict.
+- Log each delegation in [docs/ollama-agent-efficacy.md](docs/ollama-agent-efficacy.md): task, model, rounds, verdict. <!-- create this file on first use -->
 - **Trivial-edit carve-out** — Claude edits directly (no delegation) for one-liners, string/const/config changes, typos, mechanical renames, import tweaks, any change under ~20 lines of logic. Delegate only substantive logic (new functions, multi-branch flow, algorithms).
 
 ## Skills
 
 In `.claude/skills/`, apply to all agents, self-describing — invoke by name on trigger: `architecture`, `i18n`, `testing`, `oss-pr`, `bump-version`, and the `pr-*` family (`pr-review`, `pr-fix`, `pr-verify`, `pr-ship`, `pr-automation`).
+
+## Documentation Vault
+
+Design and architecture docs live in `documentation/vault/` (Obsidian). Use the `create-document-vault` skill to add or update vault documents. Key docs:
+
+- `ARCHITECTURE.md` — system design, processes, aioncore, ACP
+- `DECISIONS.md` — ADRs
+- `DOMAIN.md` — domain model, glossary
+- `PROJECT.md` — issues, tasks, milestones
 
 ## Code Intelligence (GitNexus — optional)
 

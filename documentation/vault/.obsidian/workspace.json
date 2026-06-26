@@ -1,0 +1,5 @@
+{
+  "main": { "id": "main", "type": "split", "children": [] },
+  "left": { "id": "left", "type": "split", "children": [] },
+  "right": { "id": "right", "type": "split", "children": [] }
+}
