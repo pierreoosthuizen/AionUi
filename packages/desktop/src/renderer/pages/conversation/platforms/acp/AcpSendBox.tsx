@@ -29,7 +29,7 @@ import { useConversationContextSafe } from '@/renderer/hooks/context/Conversatio
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -239,6 +239,7 @@ const AcpSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
+  const updateMessageList = useUpdateMessageList();
   const runtimeView = useConversationRuntimeView(conversation_id);
 
   // G2 — retry pattern: ref is set after useConversationCommandQueue so executeCommand
@@ -444,9 +445,24 @@ Please check your local CLI tool authentication status`,
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
-    // `!`-prefix shell mode: route the command to the agent's Bash tool.
     const trimmed = message.trimStart();
     let outgoing = message;
+
+    // `/compact` — clear visible history and send a summarisation prompt.
+    if (trimmed === '/compact') {
+      clearFiles();
+      emitter.emit('acp.selected.file.clear');
+      updateMessageList(() => []);
+      const compactPrompt = t('acp.compact.prompt');
+      if (shouldEnqueueConversationCommand({ enabled: true, isBusy, hasPendingCommands })) {
+        enqueue({ input: compactPrompt, files: [] });
+        return;
+      }
+      await executeCommand({ input: compactPrompt, files: [] });
+      return;
+    }
+
+    // `!`-prefix shell mode: route the command to the agent's Bash tool.
     if (trimmed.startsWith('!')) {
       const cmd = trimmed.slice(1).trim();
       if (cmd) {

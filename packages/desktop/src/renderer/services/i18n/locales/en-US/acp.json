@@ -27,6 +27,9 @@
     "error": "Connection error",
     "unknown": "Unknown status"
   },
+  "compact": {
+    "prompt": "Please provide a concise summary of our conversation so far, capturing the key context, decisions, and current state needed to continue working effectively."
+  },
   "config": {
     "reasoning_effort": "Reasoning Effort",
     "default": "Default"

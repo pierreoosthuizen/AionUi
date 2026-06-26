@@ -158,6 +158,7 @@ vi.mock('@/renderer/hooks/ui/useLatestRef', () => ({
 }));
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => addOrUpdateMessageMock,
+  useUpdateMessageList: () => vi.fn(),
 }));
 vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
   shouldEnqueueConversationCommand: () => false,
