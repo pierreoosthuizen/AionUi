@@ -57,9 +57,10 @@ function readJson(path: string): Promise<Record<string, unknown> | null> {
     .catch((): null => null);
 }
 
-export function useLoadedMcpServers(workspace?: string): McpGroups {
+export function useLoadedMcpServers(workspace?: string, epoch = 0): McpGroups {
   const [groups, setGroups] = useState<McpGroups>(EMPTY);
   useEffect(() => {
+    void epoch; // ADR-0014: epoch bump re-runs this effect, re-reading JSON files
     let alive = true;
     void (async () => {
       const [claudeConfig, projectFile] = await Promise.all([
@@ -77,6 +78,6 @@ export function useLoadedMcpServers(workspace?: string): McpGroups {
     return () => {
       alive = false;
     };
-  }, [workspace]);
+  }, [workspace, epoch]);
   return groups;
 }

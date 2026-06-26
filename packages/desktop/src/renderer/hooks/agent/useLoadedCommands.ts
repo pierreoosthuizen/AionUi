@@ -52,6 +52,12 @@ async function scanCommands(dir: string): Promise<SkillItem[]> {
 let userScan: Promise<SkillItem[]> | null = null;
 const profileScans = new Map<string, Promise<SkillItem[]>>();
 
+/** ADR-0014: clear the per-session command scan cache so the next epoch re-scans from disk. */
+export function clearCommandsCache(): void {
+  userScan = null;
+  profileScans.clear();
+}
+
 function scanProfileCommands(profile: string): Promise<SkillItem[]> {
   let scan = profileScans.get(profile);
   if (!scan) {
@@ -61,9 +67,10 @@ function scanProfileCommands(profile: string): Promise<SkillItem[]> {
   return scan;
 }
 
-export function useLoadedCommands(workspace?: string): SkillGroups {
+export function useLoadedCommands(workspace?: string, epoch = 0): SkillGroups {
   const [groups, setGroups] = useState<SkillGroups>({ global: [], profiles: [] });
   useEffect(() => {
+    if (epoch > 0) clearCommandsCache();
     let alive = true;
     userScan ??= scanCommands(USER_COMMANDS_DIR);
     const projectScan = workspace ? scanCommands(`${workspace}/.claude/commands`) : Promise.resolve<SkillItem[]>([]);
@@ -85,6 +92,6 @@ export function useLoadedCommands(workspace?: string): SkillGroups {
     return () => {
       alive = false;
     };
-  }, [workspace]);
+  }, [workspace, epoch]);
   return groups;
 }

@@ -79,6 +79,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     setActiveTab(SECTION_TABS[next][0]);
   }, []);
   const [includeHidden, setIncludeHidden] = useState(false);
+
+  // ADR-0014: epoch counter for agent-section refresh (Skills / Commands / MCP).
+  const [agentEpoch, setAgentEpoch] = useState(0);
+  const handleAgentRefresh = useCallback(() => setAgentEpoch((e) => e + 1), []);
   const fileChangesHook = useFileChanges({ workspace });
 
   // Bind workspace uploads to the conversation lifecycle: switching the
@@ -307,6 +311,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
+          onAgentRefresh={handleAgentRefresh}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -518,21 +523,21 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         {/* Agent → Skills tab content */}
         {!isWorkspaceCollapsed && activeTab === 'skills' && (
           <FlexFullContainer containerClassName='overflow-hidden'>
-            <SkillsList t={t} workspace={workspace} />
+            <SkillsList t={t} workspace={workspace} refreshEpoch={agentEpoch} />
           </FlexFullContainer>
         )}
 
         {/* Agent → Commands tab content */}
         {!isWorkspaceCollapsed && activeTab === 'commands' && (
           <FlexFullContainer containerClassName='overflow-hidden'>
-            <CommandsList t={t} workspace={workspace} />
+            <CommandsList t={t} workspace={workspace} refreshEpoch={agentEpoch} />
           </FlexFullContainer>
         )}
 
         {/* Agent → MCP tab content */}
         {!isWorkspaceCollapsed && activeTab === 'mcp' && (
           <FlexFullContainer containerClassName='overflow-hidden'>
-            <McpServersList t={t} workspace={workspace} />
+            <McpServersList t={t} workspace={workspace} refreshEpoch={agentEpoch} />
           </FlexFullContainer>
         )}
 

@@ -159,6 +159,7 @@ export function useLoadedSkills(workspace?: string, epoch = 0): LoadedSkills {
   const [retry, setRetry] = useState(0);
 
   useEffect(() => {
+    if (epoch > 0) clearSkillScanCache();
     let alive = true;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const userScan = cachedScan(USER_SKILLS_DIR);

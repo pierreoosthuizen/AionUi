@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Dropdown, Radio, Tabs } from '@arco-design/web-react';
-import { BranchOne } from '@icon-park/react';
+import { Dropdown, Radio, Tabs, Tooltip } from '@arco-design/web-react';
+import { BranchOne, Refresh } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React from 'react';
 import type { WorkspaceSection, WorkspaceTab } from '../types';
@@ -18,6 +18,7 @@ type WorkspaceTabBarProps = {
   onTabChange: (tab: WorkspaceTab) => void;
   changeCount: number;
   branch: string | null;
+  onAgentRefresh?: () => void;
 };
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
@@ -28,6 +29,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   onTabChange,
   changeCount,
   branch,
+  onAgentRefresh,
 }) => {
   const changesTitle = (
     <span className='flex items-center'>
@@ -69,7 +71,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   return (
     <div className='flex flex-col'>
       {/* Section switcher: Project (files) vs Agent (skills/commands/mcp/plugins) */}
-      <div className='px-12px pt-8px'>
+      <div className='px-12px pt-8px flex items-center gap-8px'>
         <Radio.Group
           type='button'
           size='small'
@@ -79,6 +81,13 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
           <Radio value='project'>{t('conversation.workspace.section.project', { defaultValue: 'Project' })}</Radio>
           <Radio value='agent'>{t('conversation.workspace.section.agent', { defaultValue: 'Agent' })}</Radio>
         </Radio.Group>
+        {section === 'agent' && onAgentRefresh && (
+          <Tooltip content={t('conversation.workspace.agent.refresh', { defaultValue: 'Refresh' })}>
+            <span>
+              <Refresh theme='outline' size={14} onClick={onAgentRefresh} style={{ cursor: 'pointer' }} />
+            </span>
+          </Tooltip>
+        )}
       </div>
 
       <Tabs

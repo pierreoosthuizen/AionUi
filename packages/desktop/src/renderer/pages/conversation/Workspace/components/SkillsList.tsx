@@ -24,6 +24,7 @@ type FilterMode = 'all' | 'hide-off';
 type SkillsListProps = {
   t: TFunction;
   workspace?: string;
+  refreshEpoch?: number;
 };
 
 /**
@@ -32,12 +33,13 @@ type SkillsListProps = {
  * 4-state enable-status. Clicking a row cycles the state and persists it to
  * `.claude/settings.local.json`, like the Claude Code CLI's `/skills`.
  */
-const SkillsList: React.FC<SkillsListProps> = ({ t, workspace }) => {
-  // REQ-027: the refresh button bumps this nonce (after clearing the scan cache)
-  // to force useLoadedSkills to re-scan; the filter is ephemeral, resetting here.
+const SkillsList: React.FC<SkillsListProps> = ({ t, workspace, refreshEpoch = 0 }) => {
+  // REQ-027: the refresh button bumps this nonce to force a re-scan; the filter
+  // is ephemeral, resetting here. ADR-0014: refreshEpoch from parent also triggers
+  // a re-scan via the hook's built-in cache clear.
   const [skillsEpoch, setSkillsEpoch] = useState(0);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
-  const { user, project, cycle } = useLoadedSkills(workspace, skillsEpoch);
+  const { user, project, cycle } = useLoadedSkills(workspace, skillsEpoch + refreshEpoch);
 
   const refreshSkills = () => {
     clearSkillScanCache();

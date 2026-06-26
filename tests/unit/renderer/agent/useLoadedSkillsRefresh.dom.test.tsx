@@ -7,9 +7,12 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// REQ-027: the Skills-tab refresh button clears the per-session scan cache and
-// bumps an epoch that re-runs the scan effect. These tests prove the wiring:
-// epoch alone is deduped by the cache; clear() + epoch forces a fresh backend scan.
+// REQ-027 / ADR-0014: the Skills-tab refresh button bumps an epoch that re-runs
+// the scan effect. As of ADR-0014, the hook clears its own cache at the start of
+// the effect when epoch > 0 — so a bare epoch bump is sufficient to force a fresh
+// backend scan. The SkillsList component still calls clearSkillScanCache() before
+// bumping its internal epoch (harmless double-clear), and the external refresh
+// button (WorkspaceTabBar) relies solely on the epoch prop flowing from ChatWorkspace.
 
 const { scanForSkillsMock, readFileMock, writeFileMock } = vi.hoisted(() => ({
   scanForSkillsMock: vi.fn(),
@@ -27,7 +30,7 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
 
 import { clearSkillScanCache, useLoadedSkills } from '@/renderer/hooks/agent/useLoadedSkills';
 
-describe('useLoadedSkills refresh wiring (REQ-027)', () => {
+describe('useLoadedSkills refresh wiring (REQ-027 / ADR-0014)', () => {
   beforeEach(() => {
     clearSkillScanCache();
     scanForSkillsMock.mockReset().mockResolvedValue({ skills: [{ name: 'alpha', description: 'A skill' }] });
@@ -37,8 +40,19 @@ describe('useLoadedSkills refresh wiring (REQ-027)', () => {
   });
   afterEach(() => clearSkillScanCache());
 
-  /** Bumping only the epoch re-runs the effect but hits the cache — no extra backend scan. */
-  it('reuses the scan cache when only the epoch changes', async () => {
+  /** epoch=0 (cold start) does not clear the cache — scanning happens once. */
+  it('does not clear the cache on cold start (epoch 0)', async () => {
+    const { result } = renderHook(() => useLoadedSkills('/ws', 0));
+    await waitFor(() => expect(result.current.user.length + result.current.project.length).toBeGreaterThan(0));
+    const scansAfterMount = scanForSkillsMock.mock.calls.length;
+    // Mount a second hook with the same cache — should be a cache hit, no extra scan.
+    renderHook(() => useLoadedSkills('/ws', 0));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(scanForSkillsMock.mock.calls.length).toBe(scansAfterMount);
+  });
+
+  /** Bumping epoch > 0 clears the cache inside the hook and forces a fresh backend scan. */
+  it('re-scans when epoch is bumped (hook clears cache automatically)', async () => {
     const { result, rerender } = renderHook(({ epoch }) => useLoadedSkills('/ws', epoch), {
       initialProps: { epoch: 0 },
     });
@@ -47,10 +61,10 @@ describe('useLoadedSkills refresh wiring (REQ-027)', () => {
     await act(async () => {
       rerender({ epoch: 1 });
     });
-    expect(scanForSkillsMock.mock.calls.length).toBe(initialScans);
+    await waitFor(() => expect(scanForSkillsMock.mock.calls.length).toBeGreaterThan(initialScans));
   });
 
-  /** clearSkillScanCache() + an epoch bump forces a fresh re-scan so deleted/new skills surface. */
+  /** clearSkillScanCache() + epoch bump also forces a fresh re-scan (SkillsList internal refresh path). */
   it('re-scans after clearSkillScanCache() and an epoch bump', async () => {
     const { result, rerender } = renderHook(({ epoch }) => useLoadedSkills('/ws', epoch), {
       initialProps: { epoch: 0 },

@@ -50,6 +50,10 @@ vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
   useConversationContextSafe: () => null,
 }));
 
+vi.mock('@/renderer/pages/conversation/runtime/useConversationRuntimeView', () => ({
+  useConversationRuntimeView: () => ({ isProcessing: false }),
+}));
+
 vi.mock('@/renderer/hooks/file/useAutoPreviewOfficeFiles', () => ({
   useAutoPreviewOfficeFiles: () => {},
 }));
@@ -198,8 +202,7 @@ describe('MessageList streaming scroll behavior', () => {
     vi.useRealTimers();
   });
 
-  // Skipped: red on main since 2026-06-23 — Gitea #42
-  it.skip('keeps streamed auto-follow scroll targets moving forward as content grows', () => {
+  it('keeps streamed auto-follow scroll targets moving forward as content grows', () => {
     const firstMessage = createTextMessage('hello');
     const { rerender } = render(
       <Wrapper messages={[firstMessage]}>
@@ -239,8 +242,7 @@ describe('MessageList streaming scroll behavior', () => {
     expect(scrollTargets).toEqual([680, 760, 840]);
   });
 
-  // Skipped: red on main since 2026-06-23 — Gitea #42
-  it.skip('stops auto-following streamed updates after the user scrolls up', () => {
+  it('stops auto-following streamed updates after the user scrolls up', () => {
     const firstMessage = createTextMessage('hello');
     const { rerender } = render(
       <Wrapper messages={[firstMessage]}>

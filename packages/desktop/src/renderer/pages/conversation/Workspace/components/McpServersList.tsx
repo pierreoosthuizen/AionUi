@@ -14,12 +14,13 @@ import GroupedItemList from './GroupedItemList';
 type McpServersListProps = {
   t: TFunction;
   workspace?: string;
+  refreshEpoch?: number;
 };
 
 /** Agent → MCP tab: MCP servers the embedded agent sees, grouped by config scope.
  *  Read-only (rows don't drop into the sendbox like skills/commands do). */
-const McpServersList: React.FC<McpServersListProps> = ({ t, workspace }) => {
-  const { user, local, project } = useLoadedMcpServers(workspace);
+const McpServersList: React.FC<McpServersListProps> = ({ t, workspace, refreshEpoch = 0 }) => {
+  const { user, local, project } = useLoadedMcpServers(workspace, refreshEpoch);
   const groups: SkillGroups = {
     global: user,
     profiles: [

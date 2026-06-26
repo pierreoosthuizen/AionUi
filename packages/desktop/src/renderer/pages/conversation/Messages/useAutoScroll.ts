@@ -208,6 +208,10 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     requestAnimationFrame(() => {
       scrollToBottom('auto');
       lastScrollTopRef.current = scrollerEl.scrollTop;
+      // Seed dimension refs so the first handleScroll call can correctly classify
+      // user-initiated scrolls vs programmatic ones (layoutChanged detection).
+      lastScrollHeightRef.current = scrollerEl.scrollHeight;
+      lastClientHeightRef.current = scrollerEl.clientHeight;
     });
   }, [itemCount, scrollerEl, scrollToBottom]);
 

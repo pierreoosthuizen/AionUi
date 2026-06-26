@@ -603,6 +603,7 @@ export type I18nKey =
   | 'conversation.welcome.title'
   | 'conversation.welcome.useCliModel'
   | 'conversation.workspace.addFile'
+  | 'conversation.workspace.agent.refresh'
   | 'conversation.workspace.changes.changedFiles'
   | 'conversation.workspace.changes.currentBranchLabel'
   | 'conversation.workspace.changes.deletions'
