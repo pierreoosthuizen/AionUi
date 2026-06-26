@@ -109,7 +109,8 @@ function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtif
 function copyDirectorySync(src, dest) {
   fs.cpSync(src, dest, {
     recursive: true,
-    filter: (srcPath) => !srcPath.includes(`${path.sep}node_modules${path.sep}`) && !srcPath.endsWith(`${path.sep}node_modules`),
+    filter: (srcPath) =>
+      !srcPath.includes(`${path.sep}node_modules${path.sep}`) && !srcPath.endsWith(`${path.sep}node_modules`),
   });
 }
 
