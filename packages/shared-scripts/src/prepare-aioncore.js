@@ -21,6 +21,8 @@ const path = require('path');
 const GITHUB_OWNER = 'iOfficeAI';
 const GITHUB_REPO = 'AionCore';
 
+const MANAGED_NODE_VERSION = '24.11.0';
+
 const ACTIONS_ARTIFACT_TARGETS = {
   'darwin-arm64': {
     artifactName: 'aioncore-manual-macos-arm64',
@@ -125,25 +127,77 @@ function findFilesNamed(dir, fileName) {
   return results;
 }
 
-function prepareManagedResources(_binaryPath, targetDir, projectRoot) {
+function nodeJsOrgPlatform(platform) {
+  return platform === 'win32' ? 'win' : platform;
+}
+
+function installManagedNode(bundleOut, platform, arch) {
+  const dirName = `node-v${MANAGED_NODE_VERSION}-${nodeJsOrgPlatform(platform)}-${arch}`;
+  const executableParts = platform === 'win32' ? ['node.exe'] : ['bin', 'node'];
+  const nodeOutDir = path.join(bundleOut, 'node', dirName);
+  const nodeBinPath = path.join(nodeOutDir, ...executableParts);
+
+  ensureDirectory(path.dirname(nodeBinPath));
+
+  const cacheDir = path.join(os.homedir(), '.cache', 'aionui-node-prepare');
+  const cachedBin = path.join(cacheDir, dirName, ...executableParts);
+
+  if (fs.existsSync(cachedBin)) {
+    console.log(`  Using cached Node.js v${MANAGED_NODE_VERSION} (${dirName})`);
+    copyFileSafe(cachedBin, nodeBinPath);
+    ensureExecutableMode(nodeBinPath);
+    return;
+  }
+
+  const ext = platform === 'win32' ? '.zip' : '.tar.gz';
+  const archiveName = `${dirName}${ext}`;
+  const url = `https://nodejs.org/dist/v${MANAGED_NODE_VERSION}/${archiveName}`;
+  const tempDir = path.join(os.tmpdir(), `aionui-node-${MANAGED_NODE_VERSION}`);
+  const archivePath = path.join(tempDir, archiveName);
+  const extractDir = path.join(tempDir, 'extracted');
+
+  removeDirectorySafe(tempDir);
+  ensureDirectory(tempDir);
+
+  console.log(`  Downloading Node.js v${MANAGED_NODE_VERSION} from nodejs.org...`);
+  downloadFile(url, archivePath);
+  extractArchive(archivePath, extractDir, platform);
+
+  const binaryName = platform === 'win32' ? 'node.exe' : 'node';
+  const foundBin = findBinaryInDir(extractDir, binaryName);
+  if (!foundBin) throw new Error(`node binary not found in ${archiveName}`);
+
+  ensureDirectory(path.dirname(cachedBin));
+  copyFileSafe(foundBin, cachedBin);
+  ensureExecutableMode(cachedBin);
+
+  copyFileSafe(foundBin, nodeBinPath);
+  ensureExecutableMode(nodeBinPath);
+
+  removeDirectorySafe(tempDir);
+  console.log(`  Node.js v${MANAGED_NODE_VERSION} installed`);
+}
+
+function prepareManagedResources(_binaryPath, targetDir, projectRoot, platform, arch) {
   const bundleOut = path.join(targetDir, 'managed-resources');
   const localManagedDir = path.join(projectRoot, 'resources', 'local-managed-resources');
 
   removeDirectorySafe(bundleOut);
   ensureDirectory(bundleOut);
 
-  if (!fs.existsSync(localManagedDir)) {
-    console.log('  No local managed resources found — skipping');
-    return bundleOut;
-  }
+  console.log('  Installing managed resources locally (nodejs.org + npm, no CDN)');
 
-  console.log(`  Installing managed resources from ${path.relative(process.cwd(), localManagedDir)}`);
-  copyDirectorySync(localManagedDir, bundleOut);
+  installManagedNode(bundleOut, platform, arch);
 
-  for (const pkgJsonPath of findFilesNamed(bundleOut, 'package.json')) {
-    const dir = path.dirname(pkgJsonPath);
-    console.log(`  npm install in ${path.relative(process.cwd(), dir)}`);
-    execFileSync('npm', ['install', '--production', '--no-fund', '--no-audit'], { cwd: dir, stdio: 'inherit' });
+  if (fs.existsSync(localManagedDir)) {
+    console.log(`  Installing ACP tools from ${path.relative(process.cwd(), localManagedDir)}`);
+    copyDirectorySync(localManagedDir, bundleOut);
+
+    for (const pkgJsonPath of findFilesNamed(bundleOut, 'package.json')) {
+      const dir = path.dirname(pkgJsonPath);
+      console.log(`  npm install in ${path.relative(process.cwd(), dir)}`);
+      execFileSync('npm', ['install', '--production', '--no-fund', '--no-audit'], { cwd: dir, stdio: 'inherit' });
+    }
   }
 
   return bundleOut;
@@ -508,7 +562,13 @@ function prepareAioncore(options) {
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
-    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir, projectRoot);
+    const bundledManagedResourcesDir = prepareManagedResources(
+      targetBinaryPath,
+      targetDir,
+      projectRoot,
+      platform,
+      arch
+    );
 
     // The release tag is the authoritative version — the aioncore
     // binary does not expose a --version flag (it has --app-version which
